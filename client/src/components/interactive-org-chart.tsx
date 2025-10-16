@@ -25,7 +25,7 @@ import {
   Minimize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { OrgChartNode, User as UserType } from '@/lib/database';
+import { OrgChartNode, User as UserType } from '../lib/database';
 
 interface InteractiveOrgChartProps {
   nodes: OrgChartNode[];
@@ -119,24 +119,16 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({
                   "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md",
                   levelColors[level as keyof typeof levelColors]
                 )}>
-                  {user?.profilePicture ? (
-                    <img 
-                      src={user.profilePicture} 
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    getInitials(user?.name || node.name)
-                  )}
+                  {getInitials(user?.fullName || node.name)}
                 </div>
 
                 {/* Name and Role */}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-gray-900 truncate">
-                    {user?.name || node.name}
+                    {user?.fullName || node.name}
                   </h3>
                   <p className="text-sm text-gray-600 truncate">
-                    {user?.role || node.role}
+                    {user?.jobTitle || node.role}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
                     {user?.department || node.department}
@@ -208,8 +200,8 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({
         
         <TooltipContent side="top" className="max-w-xs">
           <div className="space-y-1">
-            <p className="font-medium">{user?.name || node.name}</p>
-            <p className="text-sm text-gray-600">{user?.role || node.role}</p>
+            <p className="font-medium">{user?.fullName || node.name}</p>
+            <p className="text-sm text-gray-600">{user?.jobTitle || node.role}</p>
             <p className="text-sm text-gray-500">{user?.department || node.department}</p>
             {user?.email && <p className="text-sm text-gray-500">{user.email}</p>}
             <p className="text-xs text-gray-400">Level {level} - {levelLabels[level as keyof typeof levelLabels]}</p>
@@ -326,7 +318,7 @@ export const InteractiveOrgChart: React.FC<InteractiveOrgChartProps> = ({
     if (searchQuery) {
       filtered = filtered.filter(node => {
         const user = users.find(u => u.id === node.userId);
-        const searchText = `${user?.name || node.name} ${user?.role || node.role} ${user?.department || node.department}`.toLowerCase();
+        const searchText = `${user?.fullName || node.name} ${user?.jobTitle || node.role} ${user?.department || node.department}`.toLowerCase();
         return searchText.includes(searchQuery.toLowerCase());
       });
     }

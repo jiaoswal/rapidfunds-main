@@ -517,7 +517,7 @@ export class BrowserStorageImpl {
     for (const node of orgChartNodes) {
       await this.createOrgChartNode(node);
     }
-    
+
     console.log('✅ Database seeding completed successfully!');
   }
 }

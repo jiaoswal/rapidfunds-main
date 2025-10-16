@@ -54,6 +54,12 @@ export async function apiRequest(
       const tokenId = urlParts[2];
       await browserApi.deleteInviteToken(tokenId);
       result = { success: true };
+    } else if (url === '/api/users') {
+      if (method === 'GET') {
+        result = await browserApi.getUsers();
+      } else if (method === 'POST') {
+        result = await browserApi.createUser(data);
+      }
     } else if (url === '/api/org-chart') {
       if (method === 'GET') {
         result = await browserApi.getOrgChart();

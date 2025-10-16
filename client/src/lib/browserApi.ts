@@ -1,7 +1,7 @@
 import { browserStorage as storage } from './browserStorage';
 import { authManager } from './browserAuth';
 import { generateId } from './database';
-import type { User, Organization } from './database';
+import type { User, Organization, OrgChartNode } from './database';
 
 // Browser-based API that mimics the server API endpoints
 export class BrowserApi {
@@ -57,6 +57,17 @@ export class BrowserApi {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
     const user = authManager.getCurrentUser()!;
     return await storage.getUsersByOrg(user.orgId);
+  }
+
+  async createUser(data: any): Promise<User> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.createUser({
+      ...data,
+      orgId: currentUser.orgId
+    });
   }
 
   async getApprovers(): Promise<User[]> {
@@ -237,6 +248,7 @@ export class BrowserApi {
 
 
   // Org Chart endpoints
+
   async getOrgChart(): Promise<any[]> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
     const user = authManager.getCurrentUser()!;
@@ -273,7 +285,7 @@ export class BrowserApi {
     
     // Update the node with new parent and level
     const updatedNode = await storage.updateOrgChartNode(nodeId, {
-      parentId: newParentId,
+      parentId: newParentId || undefined,
       level: newLevel,
       updatedAt: new Date()
     });

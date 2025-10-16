@@ -75,19 +75,6 @@ function EmployeeCard({
   allNodes?: OrgChartNode[];
   isExpanded?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging: isDraggingActive } = useDraggable({
-    id: node.id,
-    data: node,
-  });
-
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: node.id,
-    data: node,
-  });
-
-  const style = transform ? {
-    transform: CSS.Translate.toString(transform),
-  } : undefined;
 
   // Generate email from name for demo purposes
   const generateEmail = (name: string) => {
@@ -124,22 +111,10 @@ function EmployeeCard({
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div 
-              ref={setDropRef}
-              style={style}
-              className={`relative ${isOver ? 'ring-2 ring-white/50' : ''}`}
-            >
+            <div className="relative">
               <div 
-                ref={isAdmin ? setNodeRef : undefined}
-                className={`
-                  w-80 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white shadow-lg
-                  ${isDraggingActive ? 'opacity-50 cursor-grabbing' : 'cursor-grab'}
-                  ${isOver ? 'scale-105 shadow-xl' : 'hover:shadow-xl'}
-                  transition-all duration-200
-                `}
+                className="w-80 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white shadow-lg hover:shadow-xl transition-all duration-200"
                 data-testid={`node-${node.id}`}
-                {...(isAdmin ? listeners : {})}
-                {...(isAdmin ? attributes : {})}
               >
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
@@ -210,22 +185,10 @@ function EmployeeCard({
 
   // Regular employee cards with white background
   return (
-    <div 
-      ref={setDropRef}
-      style={style}
-      className={`relative ${isOver ? 'ring-2 ring-purple-200' : ''}`}
-    >
+    <div className="relative">
       <div 
-        ref={isAdmin ? setNodeRef : undefined}
-        className={`
-          w-72 bg-white rounded-lg p-4 shadow-md border border-gray-100
-          ${isDraggingActive ? 'opacity-50 cursor-grabbing' : 'cursor-grab'}
-          ${isOver ? 'scale-105 shadow-lg' : 'hover:shadow-lg'}
-          transition-all duration-200
-        `}
+        className="w-72 bg-white rounded-lg p-4 shadow-md border border-gray-100 hover:shadow-lg transition-all duration-200"
         data-testid={`node-${node.id}`}
-        {...(isAdmin ? listeners : {})}
-        {...(isAdmin ? attributes : {})}
       >
         <div className="flex items-start gap-3">
           {/* Menu button */}
@@ -423,8 +386,28 @@ export default function OrgChartPage() {
         level = (parentNode?.level || 1) + 1;
       }
       
+      // First create a User record
+      const userData = {
+        email: `${data.name.toLowerCase().replace(/\s+/g, '.')}@demo.com`,
+        password: 'demo123', // Default password
+        fullName: data.name,
+        jobTitle: data.role,
+        department: data.department,
+        role: 'Member' as const,
+        digestTime: '09:00',
+        notificationPreferences: { push: true, email: true },
+        isOnline: false,
+        customFieldsData: {},
+        emailVerified: true
+      };
+      
+      const userRes = await apiRequest("POST", "/api/users", userData);
+      const newUser = await userRes.json();
+      
+      // Then create the OrgChartNode with the userId
       const nodeData = {
         ...data,
+        userId: newUser.id,
         level,
         isApproved: true,
         isExpanded: true,
@@ -437,6 +420,7 @@ export default function OrgChartPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org-chart"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
         description: editingNode ? "Person updated successfully" : "Person added to org chart",

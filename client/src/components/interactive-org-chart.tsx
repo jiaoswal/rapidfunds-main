@@ -232,6 +232,7 @@ const TreeNode: React.FC<{
   isAdmin?: boolean;
   viewMode: ViewMode;
   filteredNodes: OrgChartNode[];
+  users: UserType[];
 }> = ({
   node,
   user,
@@ -243,7 +244,8 @@ const TreeNode: React.FC<{
   onAddChild,
   isAdmin = false,
   viewMode,
-  filteredNodes
+  filteredNodes,
+  users
 }) => {
   const isExpanded = expandedNodes.has(node.id);
   const children = filteredNodes.filter(n => n.parentId === node.id);
@@ -285,6 +287,7 @@ const TreeNode: React.FC<{
                 isAdmin={isAdmin}
                 viewMode={viewMode}
                 filteredNodes={filteredNodes}
+                users={users}
               />
             );
           })}
@@ -532,6 +535,7 @@ export const InteractiveOrgChart: React.FC<InteractiveOrgChartProps> = ({
                   isAdmin={isAdmin && !isReadOnly}
                   viewMode={viewMode}
                   filteredNodes={filteredNodes}
+                  users={users}
                 />
               );
             })}

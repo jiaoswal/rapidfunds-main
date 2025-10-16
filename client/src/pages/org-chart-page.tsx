@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { OrgChartNode, User, clearDatabase } from "../lib/database";
+import SimpleOrgChart from "@/components/simple-org-chart";
 import { 
   Plus, 
   Users, 
@@ -49,17 +50,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tree, TreeNode } from "react-organizational-chart";
-import { 
-  DndContext, 
-  DragEndEvent,
-  DragOverlay,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  closestCenter
-} from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
-import { useDraggable, useDroppable } from '@dnd-kit/core';
 
 // Enhanced Employee Card Component with AI features
 function EmployeeCard({ 
@@ -427,6 +417,10 @@ export default function OrgChartPage() {
     queryKey: ["/api/org-chart"],
   });
 
+  const { data: users } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
   const createNodeMutation = useMutation({
     mutationFn: async (data: any) => {
       // Calculate hierarchy level automatically
@@ -489,6 +483,27 @@ export default function OrgChartPage() {
     },
   });
 
+  const moveNodeMutation = useMutation({
+    mutationFn: async ({ nodeId, newParentId, newLevel }: { nodeId: string; newParentId: string | null; newLevel: number }) => {
+      const res = await apiRequest("PUT", `/api/org-chart/${nodeId}/move`, { newParentId, newLevel });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/org-chart"] });
+      toast({
+        title: "Success",
+        description: "Member moved successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to move member.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetForm = () => {
     setName("");
     setRole("");
@@ -496,6 +511,16 @@ export default function OrgChartPage() {
     setColor("#0EA5E9");
     setSelectedParentId(null);
     setEditingNode(null);
+  };
+
+  const handleMoveNode = (nodeId: string, newParentId: string | null, newLevel: number) => {
+    moveNodeMutation.mutate({ nodeId, newParentId, newLevel });
+  };
+
+  const handleCreateNode = (parentId: string | null, level: number) => {
+    setSelectedParentId(parentId);
+    setEditingNode(null);
+    setIsAddDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -573,12 +598,7 @@ export default function OrgChartPage() {
   const rootNodes = nodes?.filter(n => !n.parentId) || [];
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
         {/* Top Header - matches reference exactly */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -867,39 +887,18 @@ export default function OrgChartPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <div 
-                style={{ 
-                  transform: `scale(${zoom})`,
-                  transformOrigin: 'top center',
-                  transition: 'transform 0.2s ease-in-out'
-                }}
-              >
-                <Tree
-                  lineWidth="2px"
-                  lineColor="#E5E7EB"
-                  lineBorderRadius="8px"
-                  label={<div />}
-                >
-                  {rootNodes.map((node) => (
-                    <OrgTreeNode
-                      key={node.id}
-                      node={node}
-                      allNodes={nodes || []}
-                      onDelete={(id) => deleteNodeMutation.mutate(id)}
-                      onAddChild={handleAddChild}
-                      onEdit={handleEdit}
-                      isAdmin={isAdmin && isEditMode}
-                      isTopLevel={true}
-                      isExpanded={expandedNodes.has(node.id) || node.isExpanded !== false}
-                      onToggleExpansion={toggleNodeExpansion}
-                    />
-                  ))}
-                </Tree>
-              </div>
+              <SimpleOrgChart
+                nodes={nodes || []}
+                users={users || []}
+                onUpdateNode={(nodeId, updates) => updateNodeMutation.mutate({ id: nodeId, data: updates })}
+                onDeleteNode={(nodeId) => deleteNodeMutation.mutate(nodeId)}
+                onCreateNode={handleCreateNode}
+                onMoveNode={handleMoveNode}
+                isAdmin={isAdmin && isEditMode}
+              />
             </div>
           )}
         </div>
       </div>
-    </DndContext>
   );
 }

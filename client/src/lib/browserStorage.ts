@@ -48,7 +48,10 @@ export class BrowserStorageImpl {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    return await db.users.where('email').equals(email).first() || null;
+    console.log('🔍 Searching for user by email:', email);
+    const user = await db.users.where('email').equals(email).first() || null;
+    console.log('👤 Database result:', user ? { id: user.id, email: user.email, role: user.role } : 'null');
+    return user;
   }
 
   async getUsersByOrgId(orgId: string): Promise<User[]> {
@@ -183,6 +186,14 @@ export class BrowserStorageImpl {
     return await db.organizations.where('orgCode').equals(orgCode).first() || null;
   }
 
+  async getAllOrganizations(): Promise<Organization[]> {
+    return await db.organizations.toArray();
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.users.toArray();
+  }
+
   async updateOrganization(id: string, updates: Partial<Organization>): Promise<Organization> {
     await db.organizations.update(id, updates);
     const updated = await db.organizations.get(id);
@@ -220,6 +231,10 @@ export class BrowserStorageImpl {
 
   async deleteOrgChartNode(id: string): Promise<void> {
     await db.orgChartNodes.delete(id);
+  }
+
+  async getOrgChartNode(id: string): Promise<OrgChartNode | null> {
+    return await db.orgChartNodes.get(id) || null;
   }
 
   // Funding Request operations
@@ -362,6 +377,17 @@ export class BrowserStorageImpl {
   }
 
   async seedDatabase(): Promise<void> {
+    console.log('🌱 Starting database seeding...');
+    
+    // Check if database already has data
+    const existingOrgs = await db.organizations.count();
+    const existingUsers = await db.users.count();
+    
+    if (existingOrgs > 0 || existingUsers > 0) {
+      console.log('📊 Database already has data, skipping seeding');
+      return;
+    }
+    
     // Import hashPassword function
     const { hashPassword } = await import('./browserAuth');
     
@@ -376,9 +402,12 @@ export class BrowserStorageImpl {
       approvalRules: [],
       defaultDigestTime: '09:00'
     });
+    console.log('🏢 Demo organization created:', { id: demoOrg.id, code: demoOrg.orgCode });
 
     // Create demo admin user
     const hashedPassword = await hashPassword('demo123');
+    console.log('🔒 Demo password hashed:', hashedPassword.substring(0, 10) + '...');
+    
     const demoAdmin = await this.createUser({
       orgId: demoOrg.id,
       email: 'admin@demo.com',
@@ -390,8 +419,26 @@ export class BrowserStorageImpl {
       notificationPreferences: { push: true, email: true },
       isOnline: false,
       customFieldsData: {},
-      emailVerified: false
+      emailVerified: true
     });
+    console.log('👤 Demo admin user created:', { id: demoAdmin.id, email: demoAdmin.email });
+
+    // Create additional demo users
+    const kavyaPassword = await hashPassword('jiaoswal');
+    const kavyaUser = await this.createUser({
+      orgId: demoOrg.id,
+      email: 'kavya@star.com',
+      password: kavyaPassword,
+      fullName: 'Kavya Star',
+      role: 'Member',
+      department: 'Engineering',
+      digestTime: '09:00',
+      notificationPreferences: { push: true, email: true },
+      isOnline: false,
+      customFieldsData: {},
+      emailVerified: true
+    });
+    console.log('👤 Kavya user created:', { id: kavyaUser.id, email: kavyaUser.email });
 
     // Create demo org chart nodes
     const orgChartNodes = [
@@ -470,6 +517,8 @@ export class BrowserStorageImpl {
     for (const node of orgChartNodes) {
       await this.createOrgChartNode(node);
     }
+    
+    console.log('✅ Database seeding completed successfully!');
   }
 }
 

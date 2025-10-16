@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { FileText, TrendingUp, Clock, CheckCircle, DollarSign } from "lucide-react";
 import { FundingRequest, Organization } from "../lib/database";
-import { EmailVerificationBanner } from "@/components/email-verification-banner";
 import { aiService } from "@/lib/aiService";
 import { useState } from "react";
 import { DashboardLoading, LoadingSkeleton } from "@/components/loading";
@@ -67,7 +66,6 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 overflow-auto">
       <div className="p-6 space-y-6">
-        <EmailVerificationBanner />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground" data-testid="text-page-title">Dashboard</h1>

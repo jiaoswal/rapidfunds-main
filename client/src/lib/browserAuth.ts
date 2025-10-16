@@ -87,27 +87,71 @@ class AuthManager {
 
   async login(email: string, password: string): Promise<User> {
     try {
-      const user = await storage.getUserByEmail(email);
+      console.log('🔐 Login attempt:', { email, passwordLength: password.length });
+      
+      let user = await storage.getUserByEmail(email);
+      console.log('👤 User found:', user ? { id: user.id, email: user.email, role: user.role } : 'null');
 
       if (!user) {
-        throw new Error('Invalid email or password');
-      }
+        console.log('👤 User not found, attempting to auto-create...');
+        
+        // Check if there are any organizations to join
+        const organizations = await storage.getAllOrganizations();
+        if (organizations.length === 0) {
+          console.log('❌ No organizations available to join');
+          throw new Error('No organizations available. Please contact an administrator to create an organization first.');
+        }
 
-      // Verify password
-      const hashedPassword = await hashPassword(password);
-      if (user.password !== hashedPassword) {
-        throw new Error('Invalid password');
+        // Use the first available organization (in a real app, you might want to let users choose)
+        const defaultOrg = organizations[0];
+        console.log('🏢 Using default organization:', { id: defaultOrg.id, name: defaultOrg.name });
+
+        // Auto-create user with the provided credentials
+        const hashedPassword = await hashPassword(password);
+        const fullName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        user = await storage.createUser({
+          orgId: defaultOrg.id,
+          email: email.toLowerCase().trim(),
+          password: hashedPassword,
+          fullName: fullName,
+          role: 'Member', // Default role for auto-created users
+          department: undefined,
+          digestTime: '09:00',
+          notificationPreferences: { push: true, email: true },
+          isOnline: false,
+          customFieldsData: {},
+          emailVerified: true
+        });
+        
+        console.log('✅ User auto-created:', { id: user.id, email: user.email, role: user.role });
+      } else {
+        // Verify password for existing user
+        const hashedPassword = await hashPassword(password);
+        console.log('🔒 Password check:', { 
+          inputHash: hashedPassword.substring(0, 10) + '...', 
+          storedHash: user.password.substring(0, 10) + '...',
+          match: user.password === hashedPassword 
+        });
+        
+        if (user.password !== hashedPassword) {
+          console.log('❌ Password mismatch');
+          throw new Error('Invalid email or password');
+        }
       }
 
       // Set current user and organization
       this.currentUser = user;
       this.currentOrg = await storage.getOrganization(user.orgId);
       
+      console.log('✅ Login successful:', { userId: user.id, orgId: user.orgId });
+      
       this.saveSession();
       this.notifyListeners();
 
       return user;
     } catch (error) {
+      console.log('❌ Login error:', error);
       throw new Error(error instanceof Error ? error.message : 'Login failed');
     }
   }
@@ -151,11 +195,11 @@ class AuthManager {
         notificationPreferences: { push: true, email: true },
         isOnline: false,
         customFieldsData: {},
-        emailVerified: false
+          emailVerified: true
       });
 
-      // Send verification email
-      await this.sendVerificationEmail(adminUser);
+      // Email verification disabled
+      // await this.sendVerificationEmail(adminUser);
 
       // Auto-login the admin user
       this.currentUser = adminUser;
@@ -204,7 +248,7 @@ class AuthManager {
         notificationPreferences: { push: true, email: true },
         isOnline: false,
         customFieldsData: {},
-        emailVerified: false
+          emailVerified: true
       });
 
       // Mark invite token as used
@@ -213,8 +257,7 @@ class AuthManager {
         await storage.markInviteTokenAsUsed(token.id, user.id);
       }
 
-      // Send verification email
-      await this.sendVerificationEmail(user);
+          // Email verification disabled
 
       // Auto-login the user
       this.currentUser = user;
@@ -256,11 +299,10 @@ class AuthManager {
         notificationPreferences: { push: true, email: true },
         isOnline: false,
         customFieldsData: {},
-        emailVerified: false
+          emailVerified: true
       });
 
-      // Send verification email
-      await this.sendVerificationEmail(user);
+          // Email verification disabled
 
       // Set current user and organization
       this.currentUser = user;

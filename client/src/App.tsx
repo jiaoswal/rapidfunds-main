@@ -21,15 +21,13 @@ const LoginPage = lazy(() => import("@/pages/login-page"));
 const JoinOrgPage = lazy(() => import("@/pages/join-org-page"));
 const CreateOrgPage = lazy(() => import("@/pages/create-org-page"));
 const InviteRedirectPage = lazy(() => import("@/pages/invite-redirect-page"));
-const VerifyEmailPage = lazy(() => import("@/pages/verify-email-page"));
-const ResetPasswordPage = lazy(() => import("@/pages/reset-password-page"));
-const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password-page"));
 const EmailDemoPage = lazy(() => import("@/pages/email-demo-page"));
 const DashboardPage = lazy(() => import("@/pages/dashboard-page"));
 const CreateRequestPage = lazy(() => import("@/pages/create-request-page"));
 const ApprovalsPage = lazy(() => import("@/pages/approvals-page"));
 const OrgChartPage = lazy(() => import("@/pages/org-chart-page"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings-page"));
+const DebugAuth = lazy(() => import("@/components/debug-auth").then(m => ({ default: m.DebugAuth })));
 
 // Loading component
 const PageLoader = () => <LoadingPage title="Loading Page..." />;
@@ -47,19 +45,16 @@ function Router() {
       <Route path="/invite/:token" component={() => <InviteRedirectPage />} />
       <Route path="/create-org" component={() => <CreateOrgPage />} />
       
-      {/* Email authentication routes */}
-      <Route path="/verify-email" component={() => <VerifyEmailPage />} />
-      <Route path="/reset-password" component={() => <ResetPasswordPage />} />
-      <Route path="/forgot-password" component={() => <ForgotPasswordPage />} />
       
       {/* Protected routes */}
       <ProtectedRoute path="/dashboard" component={() => <DashboardPage />} />
       <ProtectedRoute path="/create-request" component={() => <CreateRequestPage />} />
       <ProtectedRoute path="/approvals" component={() => <ApprovalsPage />} />
       <ProtectedRoute path="/org-chart" component={() => <OrgChartPage />} />
-      <ProtectedRoute path="/admin-settings" component={() => <AdminSettingsPage />} />
-      <ProtectedRoute path="/admin" component={() => <AdminSettingsPage />} />
-      <ProtectedRoute path="/email-demo" component={() => <EmailDemoPage />} />
+             <ProtectedRoute path="/admin-settings" component={() => <AdminSettingsPage />} />
+             <ProtectedRoute path="/admin" component={() => <AdminSettingsPage />} />
+             <ProtectedRoute path="/email-demo" component={() => <EmailDemoPage />} />
+             <Route path="/debug" component={() => <DebugAuth />} />
       
       <Route component={() => <NotFound />} />
     </Switch>
@@ -87,8 +82,8 @@ function AppLayout() {
           </header>
         )}
         
-        {/* On public routes, allow scrolling. On protected routes, use overflow-hidden for proper layout */}
-        <div className={isPublicRoute ? "flex-1 overflow-y-auto" : "flex-1 overflow-hidden"}>
+        {/* Allow scrolling on all routes */}
+        <div className="flex-1 overflow-y-auto">
           <Suspense fallback={<PageLoader />}>
             <Router />
           </Suspense>

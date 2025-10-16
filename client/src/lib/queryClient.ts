@@ -65,6 +65,8 @@ export async function apiRequest(
       if (method === 'DELETE') {
         await browserApi.deleteOrgChartNode(nodeId);
         result = null;
+      } else if (url.endsWith('/move') && method === 'PUT') {
+        result = await browserApi.moveOrgChartNode(nodeId, (data as any).newParentId, (data as any).newLevel);
       }
     } else if (url === '/api/approval-chains') {
       if (method === 'GET') {

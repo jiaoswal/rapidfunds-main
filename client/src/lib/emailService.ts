@@ -1,4 +1,4 @@
-import type { User, EmailVerification, PasswordReset } from './database';
+import type { User } from './database';
 
 // Email service interface - in a real app, this would connect to an email provider
 // For this demo, we'll simulate email sending with localStorage and console logs

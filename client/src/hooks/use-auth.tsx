@@ -4,9 +4,8 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { User as SelectUser, seedDatabase } from "../lib/database";
+import { User as SelectUser } from "../lib/database";
 import { apiRequest, queryClient } from "../lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { authManager } from "../lib/browserAuth";
 
 type AuthContextType = {
@@ -41,17 +40,15 @@ type RegisterData = {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
   const [user, setUser] = useState<SelectUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Initialize database and restore session
+    // Initialize auth and restore session
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
-        await seedDatabase();
         
         // Set up auth listener
         authManager.addAuthListener((currentUser) => {
@@ -80,11 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Login failed:", error.message);
     },
   });
 
@@ -98,11 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Registration failed:", error.message);
     },
   });
 
@@ -116,11 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = "/auth";
     },
     onError: (error: Error) => {
-      toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Logout failed:", error.message);
     },
   });
 

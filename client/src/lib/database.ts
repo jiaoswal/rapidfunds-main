@@ -140,31 +140,11 @@ export async function clearDatabase(): Promise<void> {
   await browserStorage.clearDatabase();
 }
 
-export interface EmailVerification {
-  id: string;
-  userId: string;
-  token: string;
-  expiresAt: Date;
-  verifiedAt?: Date;
-  createdAt: Date;
-}
-
-export interface PasswordReset {
-  id: string;
-  userId: string;
-  token: string;
-  expiresAt: Date;
-  usedAt?: Date;
-  createdAt: Date;
-}
 
 export async function migrateDatabase(): Promise<void> {
   // Migration logic for existing data
   const { browserStorage } = await import('./browserStorage');
   
-  // Check if database is empty and seed if needed
-  const orgs = await browserStorage.getOrganizationByCode('DEMO');
-  if (!orgs) {
-    await browserStorage.seedDatabase();
-  }
+  // The seedDatabase function now handles checking if data exists
+  await browserStorage.seedDatabase();
 }

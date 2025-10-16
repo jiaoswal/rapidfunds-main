@@ -62,9 +62,12 @@ export class BrowserApi {
   async getApprovers(): Promise<User[]> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
     const user = authManager.getCurrentUser()!;
-    const approvers = await storage.getUsersByOrgAndRole(user.orgId, 'Approver');
-    const admins = await storage.getUsersByOrgAndRole(user.orgId, 'Admin');
-    return [...approvers, ...admins];
+    
+    // Get all users in the organization except the current user
+    const allUsers = await storage.getUsersByOrg(user.orgId);
+    
+    // Filter out the current user (can't approve own requests) and return all others
+    return allUsers.filter(u => u.id !== user.id);
   }
 
   // Funding Request endpoints
@@ -256,6 +259,26 @@ export class BrowserApi {
     if (!isAdmin()) throw new Error('Admin access required');
     
     await storage.deleteOrgChartNode(id);
+  }
+
+  async moveOrgChartNode(nodeId: string, newParentId: string | null, newLevel: number): Promise<OrgChartNode> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const user = authManager.getCurrentUser()!;
+    
+    // Get the current node
+    const currentNode = await storage.getOrgChartNode(nodeId);
+    if (!currentNode) throw new Error('Node not found');
+    
+    // Update the node with new parent and level
+    const updatedNode = await storage.updateOrgChartNode(nodeId, {
+      parentId: newParentId,
+      level: newLevel,
+      updatedAt: new Date()
+    });
+    
+    return updatedNode;
   }
 
   // Approval Chain endpoints

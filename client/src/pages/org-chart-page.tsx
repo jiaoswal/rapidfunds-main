@@ -405,13 +405,6 @@ export default function OrgChartPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
 
   const { data: nodes, isLoading } = useQuery<OrgChartNode[]>({
     queryKey: ["/api/org-chart"],

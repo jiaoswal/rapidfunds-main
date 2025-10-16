@@ -1,0 +1,399 @@
+Interactive Organizational Chart Application - Complete Replit Prompt
+Project Overview
+Create a fully interactive, tree-style organizational chart web application with complete admin control and customizable hierarchy levels.
+Core Features
+1. Visual Tree Structure
+
+Display organizational hierarchy in a tree format with connecting lines between nodes
+Show parent-child relationships clearly with vertical and horizontal connecting lines
+Cards should be arranged horizontally at each level with proper spacing
+Smooth animations and transitions for all interactions
+Responsive design that works on desktop, tablet, and mobile devices
+
+2. Employee Cards
+Each employee card should display:
+
+Employee name
+Job title/position
+Hierarchy level (L1, L2, L3, etc.)
+Profile picture placeholder or icon
+Number of direct reports
+Color-coded background based on hierarchy level
+
+Card design features:
+
+Gradient backgrounds with distinct colors for each level
+Shadow effects that increase on hover
+Rounded corners for modern look
+Drag handle icon (visible on hover)
+Action buttons (edit, delete) visible on hover
+
+3. Drag and Drop Functionality
+
+Users can drag any employee card (except root/CEO)
+Drop employee card onto another card to change reporting structure
+Visual feedback during drag (opacity change, cursor change)
+Drop zones should highlight when hovering with dragged item
+Prevent dropping on own children (no circular relationships)
+Auto-update hierarchy levels after reorganization
+Smooth animation when cards move to new positions
+
+4. Admin Control Panel
+Create a comprehensive admin settings panel with:
+Initial Setup Screen:
+
+Welcome screen for first-time setup
+Option to define number of hierarchy levels (minimum 2, maximum 10)
+Custom naming for each level (e.g., L1 = Executive, L2 = Director, etc.)
+Custom color selection for each level
+Option to set organization name
+Create root user (CEO/President) with details
+
+Settings Panel (accessible anytime):
+
+Add new hierarchy levels dynamically
+Remove hierarchy levels (with warning if employees exist at that level)
+Rename existing levels
+Change colors for each level
+Reorder level priorities
+Set maximum employees per manager (optional)
+Toggle features on/off (drag-drop, inline editing, etc.)
+Export/Import organization data as JSON
+Reset organization structure (with confirmation)
+
+5. Employee Management
+Add Employee:
+
+Click "Add Report" button on any employee card
+Modal/form appears with fields:
+
+Full name (required)
+Job title (required)
+Email address
+Phone number
+Department
+Start date
+Profile picture upload
+Custom fields (admin can define additional fields)
+
+
+Automatically assign appropriate hierarchy level based on parent
+Validate all required fields before saving
+
+Edit Employee:
+
+Click edit icon on employee card
+Inline editing OR modal form (admin can choose in settings)
+Update all employee details
+Change profile picture
+Save changes with animation confirmation
+
+Delete Employee:
+
+Click delete icon on employee card
+Confirmation dialog appears
+Options when deleting:
+
+Delete and reassign reports to manager above
+Delete entire branch (employee + all reports)
+Cancel deletion
+
+
+Show warning if employee has direct reports
+
+Bulk Operations:
+
+Select multiple employees using checkboxes
+Bulk delete with options
+Bulk move to different manager
+Bulk export employee data
+
+6. Search and Filter
+Search Functionality:
+
+Search bar at top of page
+Search by: name, title, department, level, email
+Real-time search results
+Highlight matching employees in tree
+Option to show only search results or highlight in full tree
+
+Filter Options:
+
+Filter by hierarchy level
+Filter by department
+Filter by manager
+Filter by date range (hire date)
+Combine multiple filters
+Save filter presets
+
+7. View Options
+Different View Modes:
+
+Tree view (default) - full hierarchical tree
+Compact view - smaller cards with less information
+List view - traditional list format with indentation
+Department view - group by departments
+Grid view - equal-sized cards in grid layout
+
+Zoom and Navigation:
+
+Zoom in/out controls (+ / - buttons)
+Fit to screen button
+Pan/drag the entire canvas to navigate
+Mini-map overview in corner showing position in large org chart
+Keyboard shortcuts (arrow keys to navigate, + / - to zoom)
+
+8. Data Persistence
+
+Store all data in browser's IndexedDB (no backend required initially)
+Auto-save every change immediately
+Export organization data as JSON file
+Import organization data from JSON file
+Export as PDF (printable org chart)
+Export as PNG image (visual snapshot)
+
+9. Additional Features
+User Authentication (Optional):
+
+Admin login with password
+View-only mode for non-admin users
+Share read-only link to org chart
+
+Statistics Dashboard:
+
+Total number of employees
+Employees per level breakdown
+Employees per department
+Manager span of control (average reports per manager)
+Vacancy tracking (open positions)
+Growth charts over time
+
+Notifications:
+
+Success messages for actions (green toast)
+Error messages (red toast)
+Warning messages (yellow toast)
+Undo functionality for recent actions
+
+Accessibility:
+
+Keyboard navigation support
+Screen reader friendly
+High contrast mode option
+Font size adjustment
+Color blind friendly color schemes option
+
+10. Color Scheme and Design
+Default Level Colors (customizable):
+
+L1: Purple gradient (Executive level)
+L2: Blue gradient (Senior Management)
+L3: Green gradient (Middle Management)
+L4: Amber gradient (Team Leads)
+L5: Pink gradient (Senior Staff)
+L6+: Generate from color palette
+
+Overall Design:
+
+Modern, clean interface
+Neumorphism or glassmorphism style (admin choice)
+Dark mode option
+Smooth animations (fade, slide, scale)
+Consistent spacing and padding
+Professional fonts (Inter, Roboto, or similar)
+
+Technical Requirements
+Frontend Framework
+
+Use React for component-based architecture
+Use React hooks (useState, useEffect, useContext, useReducer)
+Use React DnD or similar library for drag and drop
+Use Tailwind CSS for styling (utility-first approach)
+
+Libraries to Include
+
+lucide-react: For icons
+react-beautiful-dnd OR @dnd-kit: For drag and drop
+recharts: For statistics charts
+react-hot-toast: For notifications
+html2canvas: For PNG export
+jsPDF: For PDF export
+date-fns: For date formatting
+
+State Management
+
+Use React Context API for global state
+Separate contexts for:
+
+Organization data
+Settings configuration
+UI state (view mode, filters, etc.)
+Admin authentication
+
+
+
+Data Structure
+Organization Structure:
+javascript{
+  orgId: "unique-id",
+  orgName: "Company Name",
+  createdDate: "2025-01-15",
+  levels: [
+    { id: "L1", name: "Executive", color: "#8B5CF6", maxLevel: 1 },
+    { id: "L2", name: "Director", color: "#3B82F6", maxLevel: 2 },
+    // ... more levels
+  ],
+  root: {
+    id: "emp-001",
+    name: "John Doe",
+    title: "CEO",
+    level: "L1",
+    email: "john@company.com",
+    phone: "+1234567890",
+    department: "Executive",
+    startDate: "2020-01-01",
+    profilePic: "url-or-base64",
+    customFields: {},
+    children: [
+      // child employees
+    ]
+  },
+  settings: {
+    allowDragDrop: true,
+    allowInlineEdit: true,
+    maxReportsPerManager: null,
+    viewMode: "tree",
+    theme: "light"
+  }
+}
+File Structure
+/src
+  /components
+    /OrgChart
+      - TreeView.jsx
+      - EmployeeCard.jsx
+      - ConnectionLines.jsx
+    /Admin
+      - SettingsPanel.jsx
+      - LevelManager.jsx
+      - SetupWizard.jsx
+    /Modals
+      - AddEmployeeModal.jsx
+      - EditEmployeeModal.jsx
+      - DeleteConfirmModal.jsx
+    /Layout
+      - Header.jsx
+      - Sidebar.jsx
+      - Toolbar.jsx
+  /contexts
+    - OrgContext.jsx
+    - SettingsContext.jsx
+    - AuthContext.jsx
+  /hooks
+    - useOrgData.js
+    - useDragDrop.js
+    - useLocalStorage.js
+  /utils
+    - dataHelpers.js
+    - exportHelpers.js
+    - validationHelpers.js
+  /styles
+    - globals.css
+  - App.jsx
+  - main.jsx
+User Flow
+First Time Setup:
+
+User opens application
+Welcome screen appears
+User enters organization name
+User defines number of levels (default 4)
+User customizes level names and colors
+User creates root employee (CEO)
+Setup complete, redirect to main org chart
+
+Regular Usage:
+
+User sees full org chart in tree view
+User can drag-drop to reorganize
+User clicks "Add Report" to add employees
+User uses search/filter to find specific employees
+User clicks settings icon to access admin panel
+User exports data or switches view modes
+Changes auto-save continuously
+
+Admin Actions:
+
+Click settings/gear icon in header
+Admin panel slides in from right
+Tabs for: Levels, Import/Export, Display, Advanced
+Make changes and see live preview
+Save or cancel changes
+Panel closes, org chart updates
+
+Important Notes
+
+No backend required - everything runs in browser using IndexedDB
+Admin access - add simple password protection for admin features
+Performance - optimize for org charts with 500+ employees
+Mobile responsive - tree should adapt to mobile screens (vertical layout)
+Browser compatibility - works on Chrome, Firefox, Safari, Edge
+Data validation - prevent invalid operations (circular reporting, duplicate IDs)
+Error handling - graceful error messages for all operations
+Loading states - show spinners/skeletons when processing
+Empty states - friendly messages when no employees exist
+
+Success Criteria
+The application is complete when:
+
+Admin can set up org with custom number of levels
+Admin can add, edit, delete employees at any level
+Drag and drop works smoothly to reorganize structure
+Admin can add/remove levels anytime from settings
+All data persists in browser storage
+Export to JSON, PDF, and PNG works
+Search and filter work accurately
+UI is responsive and works on all devices
+No console errors or bugs
+Professional, polished design throughout
+
+Development Instructions for Replit
+
+Create a new React + Vite project in Replit
+Install all required dependencies via package.json
+Set up the folder structure as specified above
+Implement contexts first for state management
+Build the setup wizard for first-time users
+Create the core OrgChart tree view component
+Implement drag-and-drop functionality
+Add admin settings panel with level management
+Implement add/edit/delete employee features
+Add search, filter, and view options
+Implement export features
+Add statistics dashboard
+Polish UI with animations and responsive design
+Test thoroughly with various scenarios
+Deploy to Replit hosting
+
+Testing Checklist
+
+ Setup wizard completes successfully
+ Can add employees at all levels
+ Drag and drop reorganizes structure correctly
+ Edit employee updates data immediately
+ Delete employee handles reports appropriately
+ Can add new levels in settings
+ Can remove levels (with warning)
+ Search finds employees accurately
+ Filters work correctly
+ Export to JSON preserves all data
+ Import from JSON restores structure
+ PDF export generates readable document
+ PNG export captures full tree
+ Mobile view displays correctly
+ Dark mode works properly
+ Data persists after browser refresh
+ No memory leaks with large org charts
+ Zoom and pan work smoothly
+ Undo functionality works
+ All animations are smooth (60fps)

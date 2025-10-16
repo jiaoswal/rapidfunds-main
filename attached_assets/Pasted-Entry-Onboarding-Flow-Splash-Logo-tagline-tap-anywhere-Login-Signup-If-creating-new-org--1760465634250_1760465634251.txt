@@ -1,0 +1,92 @@
+Entry / Onboarding Flow
+Splash: Logo + tagline; tap anywhere.
+Login/Signup:
+If creating new org (CEO/Founder): Org name, logo (optional), email/password → becomes Admin.
+If joining existing org: Enter invite code → auto-role = Member (Admin can later upgrade to Approver/Finance).
+Onboarding:
+Profile basics (name, dept)
+Choose daily digest time
+Admin-only: quick setup (departments, assign approvers, add checklist templates)1️⃣ Directory
+Purpose: Show everyone in the organization; let a user pick someone to raise a funding query or view profile.
+Main Screen: Directory List
+Search bar (by name / department / role tags: Finance, Approver, Admin).
+Filters (Department, Role Tag).
+User cards: name, title/role tag, dept, status (online/offline optional).
+Floating action: “Invite Member” (Admins only).
+User Profile (drilled from Directory)
+Profile photo / initials
+Name, job title, department
+Contact info (email, optional phone)
+Role badges: Finance / Approver / Admin
+Actions:
+Start Funding Query → opens “New Query” flow
+View past queries with this person
+Optional: “Add to Favorites” (quick access list)
+2️⃣ My Queries
+Purpose: Everything the current user has raised.
+Main Screen: My Queries List
+Tabs or filters:
+Open (Awaiting approval)
+Needs Info (Approver asked for details)
+Approved
+Rejected
+Closed
+Card contents:
+Title, Amount, Category (Advance / Reimbursement / Vendor / Budget)
+Checklist progress (% done)
+Counterpart (main approver)
+Last activity time
+Search/filter by: amount, category, counterpart.
+Query Details (when a card is tapped)
+Header: Title + Status chip + Amount
+Participants row (avatars, with add/remove if admin/approver)
+Checklist block:
+Required items (upload file / mark done / add note)
+Non-required items
+Chat/message feed:
+Messages (text, file attachments)
+System events (status changes, checklist updates)
+Approver Action Bar (if user is approver): Approve | Reject | Needs Info (requires note) | Forward.
+Audit trail drawer: shows who did what & when.
+Edit/Update Query (Requester)
+Add attachments, fill checklist, respond to Needs Info.
+3️⃣ Inbox
+Purpose: For approvers/finance to quickly act on items and see anything assigned to them.
+Main Screen: Inbox
+Tabs:
+Received (assigned to you)
+Sent (where you’re an approver who forwarded)
+All (if admin)
+Filters: Dept / Category / Status / SLA (due soon).
+Card info: requester, title, amount, age/SLA, checklist progress.
+Bulk Actions: multi-select → Approve | Needs Info (add note) | Reject → Confirm.
+Query Details (same as My Queries)
+But here, action bar shows full approver controls.
+4️⃣ User Profile & Settings
+Purpose: Personal settings & org admin controls.
+Profile Tab
+Personal info: name, dept, title
+Edit profile
+Change password / SSO link
+Digest time picker (when to get daily summary)
+Notification preferences (push/email)
+Org Admin Settings (if Admin)
+Organization info: name, logo, domain
+User management:
+Invite members (email/invite code)
+Assign/remove roles (Admin, Approver, Finance)
+Remove/deactivate members
+Checklist Manager:
+Create / edit checklist templates per Category/Department
+Item types: file / text / yes-no / date
+Mark required/optional
+Approval Rules:
+Map departments → approvers / thresholds
+Escalation settings (SLA)
+Digest defaults:
+Suggest default time to new members
+Immediate ping for critical requests
+App Settings
+Dark mode toggle
+Language
+Logout

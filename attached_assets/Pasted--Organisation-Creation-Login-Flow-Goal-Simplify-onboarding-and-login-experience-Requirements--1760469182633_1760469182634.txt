@@ -1,0 +1,96 @@
+. Organisation Creation & Login Flow
+
+Goal: Simplify onboarding and login experience.
+Requirements:
+
+When a new user creates or joins an organisation, they should automatically be logged in after the action — no separate login step.
+
+The login system should only trigger when the user returns after closing the app/session.
+
+Store session securely using JWT or similar method.
+
+Ensure smooth redirection:
+
+On signup → Create/Join org → Auto-login → Redirect to dashboard.
+
+On next visit → Detect existing session → Direct to dashboard if valid, else to login page.
+
+2. Organisation Chart (Org Chart) Management
+
+Goal: Make the org chart interactive and manageable.
+Requirements:
+
+The org chart toggle and dropdowns should function smoothly (expand/collapse, drag & drop if applicable).
+
+Admin users must have full access to:
+
+Add, edit, or remove members/nodes in the org chart.
+
+Assign roles or hierarchies directly from the org chart interface.
+
+Non-admin users should only have view access.
+
+Ensure real-time updates (via WebSocket or live refresh) when changes are made.
+
+3. Funding Request Criteria (Admin-Controlled)
+
+Goal: Create consistency in funding requests across the organisation.
+Requirements:
+
+Admins can set predefined criteria or fields that every funding request must follow — e.g.:
+
+Purpose/Justification
+
+Department/Team
+
+Requested Amount
+
+Expected ROI or Outcome
+
+GST or Tax details
+
+These criteria should be customisable and visible in the funding request form for all users.
+
+Requests that don’t meet criteria should be flagged or rejected automatically.
+
+4. AI-Powered Summary for Admin Inbox
+
+Goal: Have the AI auto-summarise requests clearly for admin review.
+Requirements:
+
+The AI should summarise each request in a structured format:
+
+Why the funds are being requested
+
+Who is requesting
+
+What it’s for
+
+How much is being requested
+
+Whether GST is included or applicable
+
+There should be guidelines or templates for AI summarisation to ensure consistency.
+
+Display the AI summary in the admin inbox or dashboard view next to each request.
+
+5. Dashboard — Budget Overview UI
+
+Goal: Improve readability and layout of financial data.
+Requirements:
+
+The Budget Overview section should be clearly visualised — not cluttered.
+
+Use cards, charts, and spacing to show:
+
+Total budget
+
+Used budget
+
+Remaining funds
+
+Category-wise allocation
+
+Make it responsive and cleanly structured (avoid text overlap, ensure clarity).
+
+Add tooltips or hover states for details if needed.

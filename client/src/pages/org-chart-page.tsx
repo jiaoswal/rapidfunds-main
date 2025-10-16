@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { OrgChartNode, User, clearDatabase } from "../lib/database";
-import SimpleOrgChart from "@/components/simple-org-chart";
+import InteractiveOrgChart from "@/components/interactive-org-chart";
 import { 
   Plus, 
   Users, 
@@ -845,7 +845,7 @@ export default function OrgChartPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <SimpleOrgChart
+              <InteractiveOrgChart
                 nodes={nodes || []}
                 users={users || []}
                 onUpdateNode={(nodeId, updates) => updateNodeMutation.mutate({ id: nodeId, data: updates })}

@@ -552,41 +552,6 @@ export default function OrgChartPage() {
     setIsAddDialogOpen(true);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over || active.id === over.id) return;
-
-    // Don't allow dropping on own children
-    const draggedNode = nodes?.find(n => n.id === active.id);
-    const targetNode = nodes?.find(n => n.id === over.id);
-
-    if (!draggedNode || !targetNode) return;
-
-    // Check if target is a child of dragged node
-    const isChild = (parentId: string, childId: string): boolean => {
-      const node = nodes?.find(n => n.id === childId);
-      if (!node) return false;
-      if (node.parentId === parentId) return true;
-      if (node.parentId) return isChild(parentId, node.parentId);
-      return false;
-    };
-
-    if (isChild(draggedNode.id, targetNode.id)) {
-      toast({
-        title: "Invalid move",
-        description: "Cannot move a person under their own subordinate",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Update the parent
-    updateNodeMutation.mutate({
-      id: draggedNode.id,
-      data: { ...draggedNode, parentId: targetNode.id },
-    });
-  };
 
   const rootNodes = nodes?.filter(n => !n.parentId) || [];
 

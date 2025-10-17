@@ -16,7 +16,7 @@ VITE_OPENAI_API_KEY=your_openai_api_key_here
 
 #### Windows (PowerShell):
 ```powershell
-$env:VITE_OPENAI_API_KEY="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"
+$env:VITE_OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
 #### Windows (Command Prompt):
@@ -26,7 +26,7 @@ set VITE_OPENAI_API_KEY=your_openai_api_key_here
 
 #### macOS/Linux:
 ```bash
-export VITE_OPENAI_API_KEY="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"
+export VITE_OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
 ### Restart Development Server

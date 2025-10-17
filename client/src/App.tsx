@@ -30,6 +30,7 @@ const InvoiceUploadPage = lazy(() => import("@/pages/invoice-upload-page"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings-page"));
 const ProfilePage = lazy(() => import("@/pages/profile-page"));
 const DebugAuth = lazy(() => import("@/components/debug-auth").then(m => ({ default: m.DebugAuth })));
+const DatabaseTest = lazy(() => import("@/components/database-test"));
 
 // Loading component
 const PageLoader = () => <LoadingPage title="Loading Page..." />;
@@ -59,6 +60,7 @@ function Router() {
              <ProtectedRoute path="/admin" component={() => <AdminSettingsPage />} />
              <ProtectedRoute path="/email-demo" component={() => <EmailDemoPage />} />
              <Route path="/debug" component={() => <DebugAuth />} />
+             <Route path="/test-db" component={() => <DatabaseTest />} />
       
       <Route component={() => <NotFound />} />
     </Switch>

@@ -70,6 +70,66 @@ export class BrowserApi {
     });
   }
 
+  // Pending approvals endpoint
+  async getPendingApprovals(): Promise<Record<string, number>> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    const user = authManager.getCurrentUser()!;
+    
+    // Get all funding requests that are pending approval
+    const requests = await storage.getFundingRequestsByOrg(user.orgId);
+    const pendingRequests = requests.filter(req => req.status === 'Open');
+    
+    // Count pending approvals per user
+    const pendingCounts: Record<string, number> = {};
+    
+    for (const request of pendingRequests) {
+      // Count how many users are assigned as approvers for this request
+      if (request.approverId) {
+        pendingCounts[request.approverId] = (pendingCounts[request.approverId] || 0) + 1;
+      }
+    }
+    
+    return pendingCounts;
+  }
+
+  // Org Chart endpoints
+  async getOrgChart(): Promise<OrgChartNode[]> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    const user = authManager.getCurrentUser()!;
+    return await storage.getOrgChartNodes(user.orgId);
+  }
+
+  async createOrgChartNode(data: any): Promise<OrgChartNode> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.createOrgChartNode({
+      ...data,
+      orgId: currentUser.orgId
+    });
+  }
+
+  async updateOrgChartNode(nodeId: string, data: any): Promise<OrgChartNode> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    return await storage.updateOrgChartNode(nodeId, data);
+  }
+
+  async deleteOrgChartNode(nodeId: string): Promise<void> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    await storage.deleteOrgChartNode(nodeId);
+  }
+
+  async getOrgChartNode(nodeId: string): Promise<OrgChartNode | null> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    
+    return await storage.getOrgChartNode(nodeId);
+  }
+
   async getApprovers(): Promise<User[]> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
     const user = authManager.getCurrentUser()!;
@@ -247,31 +307,6 @@ export class BrowserApi {
   }
 
 
-  // Org Chart endpoints
-
-  async getOrgChart(): Promise<any[]> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    const user = authManager.getCurrentUser()!;
-    return await storage.getOrgChartNodesByOrg(user.orgId);
-  }
-
-  async createOrgChartNode(data: any): Promise<any> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const user = authManager.getCurrentUser()!;
-    return await storage.createOrgChartNode({
-      ...data,
-      orgId: user.orgId
-    });
-  }
-
-  async deleteOrgChartNode(id: string): Promise<void> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    await storage.deleteOrgChartNode(id);
-  }
 
   async moveOrgChartNode(nodeId: string, newParentId: string | null, newLevel: number): Promise<OrgChartNode> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
@@ -411,6 +446,42 @@ export class BrowserApi {
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
+  }
+
+  // Profile endpoints
+  async updateProfile(data: any): Promise<User> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    const updatedUser = await storage.updateUser(currentUser.id, data);
+    
+    // Note: Auth manager will automatically update when user data changes
+    
+    return updatedUser;
+  }
+
+  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<void> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    
+    // Verify current password
+    const hashedCurrentPassword = await this.hashPassword(data.currentPassword);
+    if (hashedCurrentPassword !== currentUser.password) {
+      throw new Error('Current password is incorrect');
+    }
+    
+    // Update password
+    const hashedNewPassword = await this.hashPassword(data.newPassword);
+    await storage.updateUser(currentUser.id, { password: hashedNewPassword });
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 }
 

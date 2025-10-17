@@ -14,6 +14,8 @@ import { useLocation } from "wouter";
 import { Plus, X, Upload } from "lucide-react";
 import { nanoid } from "nanoid";
 import { aiService } from "@/lib/aiService";
+import { aiSummarizer } from "@/lib/aiSummarizer";
+import DynamicApproverSelector from "@/components/dynamic-approver-selector";
 
 const CATEGORIES = ["Equipment", "Software", "Marketing", "Travel", "Training", "Other"];
 
@@ -27,7 +29,7 @@ export default function CreateRequestPage() {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
-  const [approverId, setApproverId] = useState("");
+  const [approverId, setApproverId] = useState<string | string[]>("");
   const [checklistItems, setChecklistItems] = useState<{ id: string; item: string; completed: boolean }[]>([]);
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [attachments, setAttachments] = useState<{ name: string; url: string; size: number }[]>([]);
@@ -35,20 +37,42 @@ export default function CreateRequestPage() {
   const [aiSummary, setAiSummary] = useState<string>("");
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
-  const { data: approvers } = useQuery<User[]>({
-    queryKey: ["/api/approvers"],
-  });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      // First create the request
       const res = await apiRequest("POST", "/api/requests", data);
-      return await res.json();
+      const createdRequest = await res.json();
+      
+      // Then generate AI summary if justification is provided
+      if (data.description && data.description.trim()) {
+        try {
+          const orgRes = await apiRequest("GET", "/api/organization");
+          const usersRes = await apiRequest("GET", "/api/users");
+          const organization = await orgRes.json();
+          const users = await usersRes.json();
+          
+          const context = {
+            request: { ...createdRequest, ...data },
+            requester: user!,
+            organization: organization,
+            approvers: users?.filter((u: User) => u.role === 'Admin' || u.role === 'Approver') || []
+          };
+          
+          await aiSummarizer.generateSummary(context);
+        } catch (error) {
+          console.error('Error generating AI summary:', error);
+          // Don't fail the request creation if AI summary fails
+        }
+      }
+      
+      return createdRequest;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/requests"] });
       toast({
         title: "Success",
-        description: "Funding request created successfully",
+        description: "Funding request created successfully with AI summary",
       });
       setLocation("/dashboard");
     },
@@ -176,7 +200,7 @@ export default function CreateRequestPage() {
       amount: parseInt(amount),
       category,
       customCategory: category === "Other" ? customCategory : null,
-      approverId: approverId || null,
+      approverId: Array.isArray(approverId) ? approverId[0] || null : approverId || null,
       checklist: checklistItems,
       attachments,
       aiSummary: aiSummary || undefined,
@@ -271,24 +295,13 @@ export default function CreateRequestPage() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="approver">Level 1 Approver *</Label>
-                <Select value={approverId} onValueChange={setApproverId} required>
-                  <SelectTrigger id="approver" data-testid="select-approver">
-                    <SelectValue placeholder="Select Level 1 approver" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {approvers?.map((approver) => (
-                      <SelectItem key={approver.id} value={approver.id} data-testid={`option-approver-${approver.id}`}>
-                        {approver.fullName} ({approver.role})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Select the first level approver for this request
-                </p>
-              </div>
+              <DynamicApproverSelector
+                value={approverId}
+                onChange={setApproverId}
+                required
+                placeholder="Select Level 1 approver"
+                error={!approverId && createMutation.isPending ? "Please select an approver" : undefined}
+              />
 
               <div className="space-y-3">
                 <Label>Checklist Items</Label>

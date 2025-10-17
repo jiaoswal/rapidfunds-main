@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FundingRequest, User, QueryMessage, ApprovalHistory } from "../lib/database";
-import { CheckCircle, XCircle, MessageSquare, FileText, History, Clock } from "lucide-react";
+import { FundingRequest, User, QueryMessage, ApprovalHistory, Organization } from "../lib/database";
+import { CheckCircle, XCircle, MessageSquare, FileText, History, Clock, Brain } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AISummaryComponent from "@/components/ai-summary";
 
 export default function ApprovalsPage() {
   const { user } = useAuth();
@@ -25,6 +26,10 @@ export default function ApprovalsPage() {
 
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"],
+  });
+
+  const { data: organization } = useQuery<Organization>({
+    queryKey: ["/api/organization"],
   });
 
   const { data: messages } = useQuery<QueryMessage[]>({
@@ -122,11 +127,17 @@ export default function ApprovalsPage() {
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">{request.description}</p>
         <div className="flex items-center gap-4 text-sm">
-          <span className="font-semibold text-foreground">${request.amount.toLocaleString()}</span>
+          <span className="font-semibold text-foreground">₹{request.amount.toLocaleString()}</span>
           <span className="text-muted-foreground">{request.category}</span>
           <span className="text-muted-foreground">
             {new Date(request.createdAt).toLocaleDateString()}
           </span>
+        </div>
+        
+        {/* AI Summary Quick Indicator */}
+        <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+          <Brain className="h-3 w-3" />
+          <span>AI Summary Available</span>
         </div>
         {request.checklist && request.checklist.length > 0 && (
           <div className="space-y-1">
@@ -271,7 +282,7 @@ export default function ApprovalsPage() {
               <div>
                 <h4 className="font-medium mb-1">Amount</h4>
                 <p className="text-2xl font-bold text-primary">
-                  ${selectedRequest?.amount.toLocaleString()}
+                  ₹{selectedRequest?.amount.toLocaleString()}
                 </p>
               </div>
               <div>
@@ -279,6 +290,17 @@ export default function ApprovalsPage() {
                 <Badge variant="secondary">{selectedRequest?.category}</Badge>
               </div>
             </div>
+
+            {/* AI Summary Component */}
+            {selectedRequest && users && organization && (
+              <AISummaryComponent
+                request={selectedRequest}
+                requester={users.find(u => u.id === selectedRequest.requesterId) || users[0]}
+                organization={organization}
+                approvers={users.filter(u => u.role === 'Admin' || u.role === 'Approver')}
+                className="mt-6"
+              />
+            )}
             
             {/* Approval History Timeline */}
             {approvalHistory.length > 0 && (

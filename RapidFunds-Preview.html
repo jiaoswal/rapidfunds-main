@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RapidFunds - Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .preview-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .feature {
+            padding: 30px 20px;
+            border-radius: 15px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .feature-desc {
+            color: #718096;
+            line-height: 1.6;
+        }
+        
+        .cta-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            border-radius: 15px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .cta-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .cta-desc {
+            color: #718096;
+            margin-bottom: 25px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 10px;
+            color: #22543d;
+        }
+        
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .tech-stack {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+        
+        .tech-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .tech-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .tech-item {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .preview-container {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="logo">🚀 RapidFunds</div>
+        <h1 class="title">Smart Funding Management</h1>
+        <p class="subtitle">Streamline your organization's funding requests with AI-powered insights</p>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">Dashboard Analytics</h3>
+                <p class="feature-desc">Real-time insights into funding requests, approvals, and organizational spending patterns.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <h3 class="feature-title">AI Summaries</h3>
+                <p class="feature-desc">Automated AI-powered summaries for faster decision making and approval processes.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">👥</div>
+                <h3 class="feature-title">Org Chart</h3>
+                <p class="feature-desc">Interactive organizational hierarchy with drag-and-drop management and role-based access.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">✅</div>
+                <h3 class="feature-title">Smart Approvals</h3>
+                <p class="feature-desc">Multi-level approval workflows with intelligent routing and notification systems.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">📄</div>
+                <h3 class="feature-title">Invoice Upload</h3>
+                <p class="feature-desc">Comprehensive invoice management with automated processing and approval tracking.</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">👤</div>
+                <h3 class="feature-title">Profile Management</h3>
+                <p class="feature-desc">Complete user profile system with personal settings, security, and activity tracking.</p>
+            </div>
+        </div>
+        
+        <div class="cta-section">
+            <h3 class="cta-title">Ready to Experience RapidFunds?</h3>
+            <p class="cta-desc">Access the full application with all features and functionality</p>
+            <div class="buttons">
+                <a href="http://localhost:3001" class="btn btn-primary" target="_blank">
+                    🚀 Launch App (Local)
+                </a>
+                <button class="btn btn-secondary" onclick="showInstructions()">
+                    📋 Setup Instructions
+                </button>
+            </div>
+        </div>
+        
+        <div class="status">
+            <div class="status-title">✅ Application Status</div>
+            <p>• Profile page with personal information management</p>
+            <p>• Interactive org chart with admin controls</p>
+            <p>• AI-powered funding request summaries</p>
+            <p>• Multi-level approval workflows</p>
+            <p>• Invoice upload and management</p>
+            <p>• Real-time dashboard analytics</p>
+        </div>
+        
+        <div class="tech-stack">
+            <div class="tech-title">🛠️ Technology Stack</div>
+            <div class="tech-items">
+                <span class="tech-item">React 18</span>
+                <span class="tech-item">TypeScript</span>
+                <span class="tech-item">Vite</span>
+                <span class="tech-item">TanStack Query</span>
+                <span class="tech-item">IndexedDB</span>
+                <span class="tech-item">Tailwind CSS</span>
+                <span class="tech-item">Lucide Icons</span>
+                <span class="tech-item">OpenAI API</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showInstructions() {
+            alert(`🚀 RapidFunds Setup Instructions:
+
+1. Make sure you're in the project directory
+2. Run: cd client && npm install
+3. Run: npm run dev
+4. Open: http://localhost:3001
+
+📋 Default Login Credentials:
+• Admin: admin@demo.com / admin123
+• Member: member@demo.com / member123
+
+🎯 Key Features:
+• Create/Join organizations
+• Submit funding requests
+• AI-powered summaries
+• Interactive org chart
+• Profile management
+• Multi-level approvals
+
+💡 The app uses browser-based storage, so all data persists locally!`);
+        }
+        
+        // Check if local server is running
+        fetch('http://localhost:3001')
+            .then(response => {
+                if (response.ok) {
+                    document.querySelector('.status').innerHTML = `
+                        <div class="status-title">✅ Server Running</div>
+                        <p>Local development server is active at http://localhost:3001</p>
+                        <p>Click "Launch App" to access the full application</p>
+                    `;
+                }
+            })
+            .catch(() => {
+                document.querySelector('.status').innerHTML = `
+                    <div class="status-title">⚠️ Server Not Running</div>
+                    <p>Start the development server with: cd client && npm run dev</p>
+                    <p>Then refresh this page to access the application</p>
+                `;
+            });
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, CheckSquare, Network, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, CheckSquare, Network, Settings, LogOut, Receipt, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -22,8 +22,10 @@ export function AppSidebar() {
   const navItems = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
     { title: "Create Request", url: "/create-request", icon: FileText },
+    { title: "Invoice Upload", url: "/invoice-upload", icon: Receipt },
     { title: "Approvals", url: "/approvals", icon: CheckSquare },
     { title: "Org Chart", url: "/org-chart", icon: Network },
+    { title: "Profile", url: "/profile", icon: User },
   ];
 
   const adminItems = user?.role === "Admin" ? [

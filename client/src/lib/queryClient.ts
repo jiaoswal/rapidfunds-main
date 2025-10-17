@@ -16,12 +16,17 @@ export async function apiRequest(
     // Route API calls to browser API methods
     if (url === '/api/user') {
       result = await browserApi.getCurrentUser();
+    } else if (url === '/api/user/profile' && method === 'PATCH') {
+      result = await browserApi.updateProfile(data);
+    } else if (url === '/api/user/password' && method === 'PATCH') {
+      await browserApi.changePassword(data as { currentPassword: string; newPassword: string });
+      result = { success: true };
     } else if (url === '/api/organization') {
       result = await browserApi.getOrganization();
-    } else if (url === '/api/users') {
-      result = await browserApi.getUsers();
     } else if (url === '/api/approvers') {
       result = await browserApi.getApprovers();
+    } else if (url === '/api/pending-approvals') {
+      result = await browserApi.getPendingApprovals();
     } else if (url === '/api/requests') {
       if (method === 'GET') {
         result = await browserApi.getRequests();

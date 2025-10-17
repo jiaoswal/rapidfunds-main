@@ -353,6 +353,41 @@ export class BrowserStorageImpl {
     return await db.approvalHistory.where('requestId').equals(requestId).toArray();
   }
 
+  // Org Chart operations
+  async createOrgChartNode(node: Omit<OrgChartNode, 'id' | 'createdAt' | 'updatedAt'>): Promise<OrgChartNode> {
+    const newNode: OrgChartNode = {
+      ...node,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    await db.orgChartNodes.add(newNode);
+    return newNode;
+  }
+
+  async getOrgChartNodes(orgId: string): Promise<OrgChartNode[]> {
+    return await db.orgChartNodes.where('orgId').equals(orgId).toArray();
+  }
+
+  async getOrgChartNode(nodeId: string): Promise<OrgChartNode | null> {
+    return await db.orgChartNodes.get(nodeId) || null;
+  }
+
+  async updateOrgChartNode(nodeId: string, updates: Partial<OrgChartNode>): Promise<OrgChartNode> {
+    const updatedNode = {
+      ...updates,
+      updatedAt: new Date()
+    };
+    await db.orgChartNodes.update(nodeId, updatedNode);
+    const node = await db.orgChartNodes.get(nodeId);
+    if (!node) throw new Error('Node not found');
+    return node;
+  }
+
+  async deleteOrgChartNode(nodeId: string): Promise<void> {
+    await db.orgChartNodes.delete(nodeId);
+  }
+
   // Utility functions
   async clearDatabase(): Promise<void> {
     await db.transaction('rw', [

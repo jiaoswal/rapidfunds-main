@@ -26,7 +26,9 @@ const DashboardPage = lazy(() => import("@/pages/dashboard-page"));
 const CreateRequestPage = lazy(() => import("@/pages/create-request-page"));
 const ApprovalsPage = lazy(() => import("@/pages/approvals-page"));
 const OrgChartPage = lazy(() => import("@/pages/org-chart-page"));
+const InvoiceUploadPage = lazy(() => import("@/pages/invoice-upload-page"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin-settings-page"));
+const ProfilePage = lazy(() => import("@/pages/profile-page"));
 const DebugAuth = lazy(() => import("@/components/debug-auth").then(m => ({ default: m.DebugAuth })));
 
 // Loading component
@@ -51,6 +53,8 @@ function Router() {
       <ProtectedRoute path="/create-request" component={() => <CreateRequestPage />} />
       <ProtectedRoute path="/approvals" component={() => <ApprovalsPage />} />
       <ProtectedRoute path="/org-chart" component={() => <OrgChartPage />} />
+      <ProtectedRoute path="/invoice-upload" component={() => <InvoiceUploadPage />} />
+      <ProtectedRoute path="/profile" component={() => <ProfilePage />} />
              <ProtectedRoute path="/admin-settings" component={() => <AdminSettingsPage />} />
              <ProtectedRoute path="/admin" component={() => <AdminSettingsPage />} />
              <ProtectedRoute path="/email-demo" component={() => <EmailDemoPage />} />

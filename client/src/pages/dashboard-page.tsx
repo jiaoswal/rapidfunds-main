@@ -9,6 +9,7 @@ import { FundingRequest, Organization } from "../lib/database";
 import { aiService } from "@/lib/aiService";
 import { useState } from "react";
 import { DashboardLoading, LoadingSkeleton } from "@/components/loading";
+import DailyDigest from "@/components/daily-digest";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -118,7 +119,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-success" data-testid="text-approved-count">{approvedCount}</div>
-              <p className="text-xs text-muted-foreground">${approvedAmount.toLocaleString()} funded</p>
+              <p className="text-xs text-muted-foreground">₹{approvedAmount.toLocaleString()} funded</p>
             </CardContent>
           </Card>
 
@@ -128,7 +129,7 @@ export default function DashboardPage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-amount">${totalAmount.toLocaleString()}</div>
+              <div className="text-2xl font-bold" data-testid="text-total-amount">₹{totalAmount.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">Requested</p>
             </CardContent>
           </Card>
@@ -169,7 +170,7 @@ export default function DashboardPage() {
                       <p className="text-sm text-muted-foreground line-clamp-1">{request.description}</p>
                       <div className="flex items-center gap-4 mt-2">
                         <span className="text-sm text-muted-foreground">
-                          <span className="font-medium text-foreground">${request.amount.toLocaleString()}</span>
+                          <span className="font-medium text-foreground">₹{request.amount.toLocaleString()}</span>
                         </span>
                         <span className="text-sm text-muted-foreground">{request.category}</span>
                         <span className="text-sm text-muted-foreground">
@@ -183,6 +184,14 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Daily Digest for Approvers */}
+        {(user?.role === 'Admin' || user?.role === 'Approver') && (
+          <DailyDigest 
+            approverId={user.id} 
+            className="mb-6"
+          />
+        )}
 
         {/* AI Insights Section */}
         <Card>

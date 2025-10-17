@@ -72,7 +72,7 @@ class MockAIService implements AIService {
 
     const insights = [
       `Total funding requests: ${requests.length}`,
-      `Average request amount: $${this.calculateAverageAmount(requests).toLocaleString()}`,
+      `Average request amount: ₹${this.calculateAverageAmount(requests).toLocaleString()}`,
       `Most common category: ${this.getMostCommonCategory(requests)}`,
       `Approval rate: ${this.calculateApprovalRate(requests)}%`,
       `Pending requests: ${requests.filter(r => r.status === 'Open').length}`
@@ -101,10 +101,10 @@ class MockAIService implements AIService {
     else if (amount > 5000) riskAssessment = 'Medium';
 
     // Generate contextual summary
-    const summaryText = `This ${category.toLowerCase()} request for $${amount.toLocaleString()} appears to be for ${this.extractPurpose(description)}. The request includes ${request.checklist?.length || 0} checklist items and ${request.attachments?.length || 0} attachments.`;
+    const summaryText = `This ${category.toLowerCase()} request for ₹${amount.toLocaleString()} appears to be for ${this.extractPurpose(description)}. The request includes ${request.checklist?.length || 0} checklist items and ${request.attachments?.length || 0} attachments.`;
 
     const keyPoints = [
-      `Amount: $${amount.toLocaleString()}`,
+      `Amount: ₹${amount.toLocaleString()}`,
       `Category: ${category}`,
       `Status: ${request.status}`,
       `Requested by: ${request.requesterId}`,

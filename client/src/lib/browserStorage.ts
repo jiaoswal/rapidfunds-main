@@ -423,6 +423,10 @@ export class BrowserStorageImpl {
       return;
     }
     
+    // Don't create demo data automatically - let users create their own organizations
+    console.log('📊 No demo data created - users will create their own organizations');
+    return;
+    
     // Import hashPassword function
     const { hashPassword } = await import('./browserAuth');
     

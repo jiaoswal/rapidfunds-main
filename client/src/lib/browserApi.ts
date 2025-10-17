@@ -56,7 +56,7 @@ export class BrowserApi {
   async getUsers(): Promise<User[]> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
     const user = authManager.getCurrentUser()!;
-    return await storage.getUsersByOrg(user.orgId);
+    return await storage.getUsersByOrgId(user.orgId);
   }
 
   async createUser(data: any): Promise<User> {

@@ -25,6 +25,12 @@ export async function apiRequest(
       result = await browserApi.getOrganization();
     } else if (url === '/api/approvers') {
       result = await browserApi.getApprovers();
+    } else if (url === '/api/users') {
+      if (method === 'GET') {
+        result = await browserApi.getUsers();
+      } else if (method === 'POST') {
+        result = await browserApi.createUser(data);
+      }
     } else if (url === '/api/pending-approvals') {
       result = await browserApi.getPendingApprovals();
     } else if (url === '/api/requests') {

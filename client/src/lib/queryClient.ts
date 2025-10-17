@@ -85,6 +85,43 @@ export async function apiRequest(
       } else if (url.endsWith('/move') && method === 'PUT') {
         result = await browserApi.moveOrgChartNode(nodeId, (data as any).newParentId, (data as any).newLevel);
       }
+    } else if (url === '/api/org-members') {
+      if (method === 'GET') {
+        result = await browserApi.getOrgMembers();
+      } else if (method === 'POST') {
+        result = await browserApi.createOrgMember(data);
+      }
+    } else if (url.startsWith('/api/org-members/')) {
+      const memberId = urlParts[2];
+      if (method === 'PATCH') {
+        result = await browserApi.updateOrgMember(memberId, data);
+      } else if (method === 'DELETE') {
+        await browserApi.deleteOrgMember(memberId);
+        result = { success: true };
+      }
+    } else if (url === '/api/org-requests') {
+      if (method === 'GET') {
+        const status = urlParts[2]; // Get status from query params
+        result = await browserApi.getOrgRequests(status);
+      } else if (method === 'POST') {
+        result = await browserApi.createOrgRequest(data);
+      }
+    } else if (url.startsWith('/api/org-requests/')) {
+      const requestId = urlParts[2];
+      if (method === 'PATCH') {
+        result = await browserApi.updateOrgRequest(requestId, data);
+      }
+    } else if (url === '/api/org-chart-data') {
+      if (method === 'GET') {
+        result = await browserApi.getOrgChartData();
+      } else if (method === 'POST') {
+        result = await browserApi.saveOrgChartData(data);
+      }
+    } else if (url === '/api/audit-logs') {
+      if (method === 'GET') {
+        const limit = urlParts[2] ? parseInt(urlParts[2]) : 100;
+        result = await browserApi.getAuditLogs(limit);
+      }
     } else if (url === '/api/approval-chains') {
       if (method === 'GET') {
         result = await browserApi.getApprovalChains();

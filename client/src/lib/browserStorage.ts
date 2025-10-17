@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { User, Organization, FundingRequest, QueryMessage, OrgChartNode, InviteToken, ApprovalChain, ApprovalHistory } from './database';
+import { User, Organization, FundingRequest, QueryMessage, OrgChartNode, InviteToken, ApprovalChain, ApprovalHistory, OrgMember, OrgRequest, OrgChart, OrgAuditLog } from './database';
 
 // Define the database schema
 export class BrowserStorage extends Dexie {
@@ -11,18 +11,28 @@ export class BrowserStorage extends Dexie {
   inviteTokens!: Table<InviteToken>;
   approvalChains!: Table<ApprovalChain>;
   approvalHistory!: Table<ApprovalHistory>;
+  // New org-scoped tables
+  orgMembers!: Table<OrgMember>;
+  orgRequests!: Table<OrgRequest>;
+  orgCharts!: Table<OrgChart>;
+  orgAuditLogs!: Table<OrgAuditLog>;
 
   constructor() {
     super('RapidFundsDB');
-    this.version(1).stores({
+    this.version(2).stores({
       users: '++id, orgId, email, fullName, role, department, createdAt',
-      organizations: '++id, orgCode, name, domain, createdAt',
+      organizations: '++orgId, name, inviteCode, createdBy, createdAt',
       fundingRequests: '++id, orgId, requesterId, approverId, title, status, amount, category, createdAt',
       queryMessages: '++id, requestId, userId, messageType, content, createdAt',
       orgChartNodes: '++id, orgId, userId, name, role, department, parentId, level, createdAt',
       inviteTokens: '++id, orgId, token, role, createdBy, expiresAt, usedAt',
       approvalChains: '++id, orgId, name, department, category, isDefault, createdAt',
-      approvalHistory: '++id, requestId, level, approverId, action, comments, createdAt'
+      approvalHistory: '++id, requestId, level, approverId, action, comments, createdAt',
+      // New org-scoped tables
+      orgMembers: '++memberId, orgId, email, fullName, role, status, joinedAt',
+      orgRequests: '++requestId, orgId, type, submittedBy, status, submittedAt',
+      orgCharts: '++orgId, updatedAt',
+      orgAuditLogs: '++id, orgId, action, performedBy, performedAt, targetType, targetId'
     });
   }
 }
@@ -168,10 +178,10 @@ export class BrowserStorageImpl {
   }
 
   // Organization operations
-  async createOrganization(org: Omit<Organization, 'id' | 'createdAt'>): Promise<Organization> {
+  async createOrganization(org: Omit<Organization, 'orgId' | 'createdAt'>): Promise<Organization> {
     const newOrg: Organization = {
       ...org,
-      id: crypto.randomUUID(),
+      orgId: crypto.randomUUID(),
       createdAt: new Date()
     };
     await db.organizations.add(newOrg);
@@ -183,7 +193,7 @@ export class BrowserStorageImpl {
   }
 
   async getOrganizationByCode(orgCode: string): Promise<Organization | null> {
-    return await db.organizations.where('orgCode').equals(orgCode).first() || null;
+    return await db.organizations.where('inviteCode').equals(orgCode).first() || null;
   }
 
   async getAllOrganizations(): Promise<Organization[]> {
@@ -194,9 +204,9 @@ export class BrowserStorageImpl {
     return await db.users.toArray();
   }
 
-  async updateOrganization(id: string, updates: Partial<Organization>): Promise<Organization> {
-    await db.organizations.update(id, updates);
-    const updated = await db.organizations.get(id);
+  async updateOrganization(orgId: string, updates: Partial<Organization>): Promise<Organization> {
+    await db.organizations.update(orgId, updates);
+    const updated = await db.organizations.get(orgId);
     if (!updated) throw new Error('Organization not found');
     return updated;
   }
@@ -353,6 +363,106 @@ export class BrowserStorageImpl {
     return await db.approvalHistory.where('requestId').equals(requestId).toArray();
   }
 
+  // ===== NEW ORG-SCOPED OPERATIONS =====
+
+  // Org Member operations
+  async createOrgMember(member: Omit<OrgMember, 'memberId'>): Promise<OrgMember> {
+    const newMember: OrgMember = {
+      ...member,
+      memberId: crypto.randomUUID()
+    };
+    await db.orgMembers.add(newMember);
+    await this.logAudit(member.orgId, 'create', 'system', 'member', newMember.memberId, { action: 'member_created', member });
+    return newMember;
+  }
+
+  async getOrgMembers(orgId: string): Promise<OrgMember[]> {
+    return await db.orgMembers.where('orgId').equals(orgId).toArray();
+  }
+
+  async getOrgMember(orgId: string, memberId: string): Promise<OrgMember | null> {
+    return await db.orgMembers.where(['orgId', 'memberId']).equals([orgId, memberId]).first() || null;
+  }
+
+  async updateOrgMember(orgId: string, memberId: string, updates: Partial<OrgMember>): Promise<OrgMember> {
+    const updated = await db.orgMembers.where(['orgId', 'memberId']).equals([orgId, memberId]).modify(updates);
+    const member = await this.getOrgMember(orgId, memberId);
+    if (!member) throw new Error('Member not found');
+    await this.logAudit(orgId, 'update', 'system', 'member', memberId, { action: 'member_updated', updates });
+    return member;
+  }
+
+  async deleteOrgMember(orgId: string, memberId: string): Promise<void> {
+    await db.orgMembers.where(['orgId', 'memberId']).equals([orgId, memberId]).delete();
+    await this.logAudit(orgId, 'delete', 'system', 'member', memberId, { action: 'member_deleted' });
+  }
+
+  // Org Request operations
+  async createOrgRequest(request: Omit<OrgRequest, 'requestId'>): Promise<OrgRequest> {
+    const newRequest: OrgRequest = {
+      ...request,
+      requestId: crypto.randomUUID()
+    };
+    await db.orgRequests.add(newRequest);
+    await this.logAudit(request.orgId, 'create', request.submittedBy, 'request', newRequest.requestId, { action: 'request_created', request });
+    return newRequest;
+  }
+
+  async getOrgRequests(orgId: string, status?: string): Promise<OrgRequest[]> {
+    let query = db.orgRequests.where('orgId').equals(orgId);
+    if (status) {
+      query = query.and(req => req.status === status);
+    }
+    return await query.toArray();
+  }
+
+  async getOrgRequest(orgId: string, requestId: string): Promise<OrgRequest | null> {
+    return await db.orgRequests.where(['orgId', 'requestId']).equals([orgId, requestId]).first() || null;
+  }
+
+  async updateOrgRequest(orgId: string, requestId: string, updates: Partial<OrgRequest>): Promise<OrgRequest> {
+    await db.orgRequests.where(['orgId', 'requestId']).equals([orgId, requestId]).modify(updates);
+    const request = await this.getOrgRequest(orgId, requestId);
+    if (!request) throw new Error('Request not found');
+    await this.logAudit(orgId, 'update', updates.handledBy || 'system', 'request', requestId, { action: 'request_updated', updates });
+    return request;
+  }
+
+  // Org Chart operations
+  async getOrgChart(orgId: string): Promise<OrgChart | null> {
+    return await db.orgCharts.get(orgId) || null;
+  }
+
+  async saveOrgChart(orgChart: OrgChart): Promise<OrgChart> {
+    const updatedChart = { ...orgChart, updatedAt: new Date() };
+    await db.orgCharts.put(updatedChart);
+    await this.logAudit(orgChart.orgId, 'update', 'system', 'orgChart', orgChart.orgId, { action: 'org_chart_updated', chart: updatedChart });
+    return updatedChart;
+  }
+
+  // Audit logging
+  async logAudit(orgId: string, action: string, performedBy: string, targetType: string, targetId?: string, details?: any): Promise<void> {
+    const auditLog: OrgAuditLog = {
+      id: crypto.randomUUID(),
+      orgId,
+      action,
+      performedBy,
+      performedAt: new Date(),
+      targetType,
+      targetId,
+      details
+    };
+    await db.orgAuditLogs.add(auditLog);
+  }
+
+  async getAuditLogs(orgId: string, limit: number = 100): Promise<OrgAuditLog[]> {
+    return await db.orgAuditLogs
+      .where('orgId')
+      .equals(orgId)
+      .reverse()
+      .limit(limit)
+      .toArray();
+  }
 
   // Utility functions
   async clearDatabase(): Promise<void> {
@@ -364,7 +474,11 @@ export class BrowserStorageImpl {
       db.orgChartNodes,
       db.inviteTokens,
       db.approvalChains,
-      db.approvalHistory
+      db.approvalHistory,
+      db.orgMembers,
+      db.orgRequests,
+      db.orgCharts,
+      db.orgAuditLogs
     ], async () => {
       await db.users.clear();
       await db.organizations.clear();
@@ -374,6 +488,10 @@ export class BrowserStorageImpl {
       await db.inviteTokens.clear();
       await db.approvalChains.clear();
       await db.approvalHistory.clear();
+      await db.orgMembers.clear();
+      await db.orgRequests.clear();
+      await db.orgCharts.clear();
+      await db.orgAuditLogs.clear();
     });
   }
 
@@ -398,23 +516,26 @@ export class BrowserStorageImpl {
     
     // Create demo organization
     const demoOrg = await this.createOrganization({
-      orgCode: 'DEMO',
       name: 'Demo Organization',
-      primaryColor: '#0EA5E9',
-      secondaryColor: '#10B981',
-      customFields: [],
-      checklistTemplates: [],
-      approvalRules: [],
-      defaultDigestTime: '09:00'
+      inviteCode: 'DEMO',
+      createdBy: 'temp',
+      settings: {
+        primaryColor: '#0EA5E9',
+        secondaryColor: '#10B981',
+        customFields: [],
+        checklistTemplates: [],
+        approvalRules: [],
+        defaultDigestTime: '09:00'
+      }
     });
-    console.log('🏢 Demo organization created:', { id: demoOrg.id, code: demoOrg.orgCode });
+    console.log('🏢 Demo organization created:', { id: demoOrg.orgId, code: demoOrg.inviteCode });
 
     // Create demo admin user
     const hashedPassword = await hashPassword('demo123');
     console.log('🔒 Demo password hashed:', hashedPassword.substring(0, 10) + '...');
     
     const demoAdmin = await this.createUser({
-      orgId: demoOrg.id,
+      orgId: demoOrg.orgId,
       email: 'admin@demo.com',
       password: hashedPassword,
       fullName: 'Demo Admin',
@@ -431,7 +552,7 @@ export class BrowserStorageImpl {
     // Create additional demo users
     const kavyaPassword = await hashPassword('jiaoswal');
     const kavyaUser = await this.createUser({
-      orgId: demoOrg.id,
+      orgId: demoOrg.orgId,
       email: 'kavya@star.com',
       password: kavyaPassword,
       fullName: 'Kavya Star',
@@ -448,7 +569,7 @@ export class BrowserStorageImpl {
     // Create demo org chart nodes
     const orgChartNodes = [
       {
-        orgId: demoOrg.id,
+        orgId: demoOrg.orgId,
         name: 'Allan Munger',
         role: 'Process Optimization Lead',
         department: 'Executive',
@@ -462,7 +583,7 @@ export class BrowserStorageImpl {
         isApproved: true
       },
       {
-        orgId: demoOrg.id,
+        orgId: demoOrg.orgId,
         name: 'Kayo',
         role: 'Chief People Officer',
         department: 'Human Resources & Admin',
@@ -476,7 +597,7 @@ export class BrowserStorageImpl {
         isApproved: true
       },
       {
-        orgId: demoOrg.id,
+        orgId: demoOrg.orgId,
         name: 'Daisy Phillips',
         role: 'Senior Procurement Executive',
         department: 'Operations Department',
@@ -490,7 +611,7 @@ export class BrowserStorageImpl {
         isApproved: true
       },
       {
-        orgId: demoOrg.id,
+        orgId: demoOrg.orgId,
         name: 'David Power',
         role: 'Administrator',
         department: 'Human Resources & Admin',
@@ -504,7 +625,7 @@ export class BrowserStorageImpl {
         isApproved: true
       },
       {
-        orgId: demoOrg.id,
+        orgId: demoOrg.orgId,
         name: 'Ashley McCarthy',
         role: 'Procurement Assistant',
         department: 'Operations Department',

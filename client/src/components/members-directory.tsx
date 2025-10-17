@@ -17,7 +17,7 @@ import {
   SortAsc,
   SortDesc
 } from 'lucide-react';
-import { User as UserType } from '@/lib/database';
+import { OrgMember } from '@/lib/database';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -25,7 +25,7 @@ interface MembersDirectoryProps {
   className?: string;
 }
 
-type SortField = 'fullName' | 'department' | 'role' | 'createdAt';
+type SortField = 'fullName' | 'department' | 'role' | 'joinedAt';
 type SortOrder = 'asc' | 'desc';
 
 export default function MembersDirectory({ className }: MembersDirectoryProps) {
@@ -35,35 +35,35 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
 
-  // Fetch all users in the organization
-  const { data: allUsers, isLoading } = useQuery<UserType[]>({
-    queryKey: ["/api/users"],
+  // Fetch all members in the organization using new org-scoped API
+  const { data: orgMembers, isLoading } = useQuery<OrgMember[]>({
+    queryKey: ["/api/org-members"],
   });
 
   // Get unique departments for filter
   const departments = React.useMemo(() => {
-    if (!allUsers) return [];
-    const deptSet = new Set(allUsers.map(user => user.department).filter(Boolean));
+    if (!orgMembers) return [];
+    const deptSet = new Set(orgMembers.map(member => member.profile.department).filter(Boolean));
     return Array.from(deptSet).sort();
-  }, [allUsers]);
+  }, [orgMembers]);
 
-  // Filter and sort users
-  const filteredAndSortedUsers = React.useMemo(() => {
-    if (!allUsers) return [];
+  // Filter and sort members
+  const filteredAndSortedMembers = React.useMemo(() => {
+    if (!orgMembers) return [];
 
-    let filtered = allUsers.filter(user => {
+    let filtered = orgMembers.filter(member => {
       const matchesSearch = 
-        user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.department?.toLowerCase().includes(searchTerm.toLowerCase());
+        member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.profile.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.profile.department?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesDepartment = filterDepartment === 'all' || user.department === filterDepartment;
+      const matchesDepartment = filterDepartment === 'all' || member.profile.department === filterDepartment;
 
       return matchesSearch && matchesDepartment;
     });
 
-    // Sort users
+    // Sort members
     filtered.sort((a, b) => {
       let aValue: string | Date;
       let bValue: string | Date;
@@ -74,16 +74,16 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
           bValue = b.fullName;
           break;
         case 'department':
-          aValue = a.department || '';
-          bValue = b.department || '';
+          aValue = a.profile.department || '';
+          bValue = b.profile.department || '';
           break;
         case 'role':
           aValue = a.role;
           bValue = b.role;
           break;
-        case 'createdAt':
-          aValue = new Date(a.createdAt);
-          bValue = new Date(b.createdAt);
+        case 'joinedAt':
+          aValue = new Date(a.joinedAt);
+          bValue = new Date(b.joinedAt);
           break;
         default:
           aValue = a.fullName;
@@ -96,7 +96,7 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
     });
 
     return filtered;
-  }, [allUsers, searchTerm, sortField, sortOrder, filterDepartment]);
+  }, [orgMembers, searchTerm, sortField, sortOrder, filterDepartment]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -163,7 +163,7 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
           <Users className="h-5 w-5" />
           Members Directory
           <Badge variant="secondary" className="ml-2">
-            {filteredAndSortedUsers.length} members
+            {filteredAndSortedMembers.length} members
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -199,7 +199,7 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
             <Filter className="h-4 w-4" />
             Sort by:
           </span>
-          {(['fullName', 'department', 'role', 'createdAt'] as SortField[]).map(field => (
+          {(['fullName', 'department', 'role', 'joinedAt'] as SortField[]).map(field => (
             <Button
               key={field}
               variant={sortField === field ? "default" : "outline"}
@@ -210,7 +210,7 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
               {field === 'fullName' && 'Name'}
               {field === 'department' && 'Department'}
               {field === 'role' && 'Role'}
-              {field === 'createdAt' && 'Join Date'}
+              {field === 'joinedAt' && 'Join Date'}
               {sortField === field && (
                 sortOrder === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
               )}
@@ -220,69 +220,69 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
 
         {/* Members List */}
         <div className="space-y-3 max-h-96 overflow-y-auto">
-          {filteredAndSortedUsers.length === 0 ? (
+          {filteredAndSortedMembers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>No members found</p>
               <p className="text-sm">Try adjusting your search or filter criteria</p>
             </div>
           ) : (
-            filteredAndSortedUsers.map((user) => (
+            filteredAndSortedMembers.map((member) => (
               <div
-                key={user.id}
+                key={member.memberId}
                 className={`flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors ${
-                  user.id === currentUser?.id ? 'bg-blue-50 border-blue-200' : ''
+                  member.memberId === currentUser?.id ? 'bg-blue-50 border-blue-200' : ''
                 }`}
               >
                 {/* Avatar */}
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src="" alt={user.fullName} />
+                  <AvatarImage src={member.profile.avatar} alt={member.fullName} />
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                    {getInitials(user.fullName)}
+                    {getInitials(member.fullName)}
                   </AvatarFallback>
                 </Avatar>
 
-                {/* User Info */}
+                {/* Member Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-gray-900 truncate">
-                      {user.fullName}
-                      {user.id === currentUser?.id && (
+                      {member.fullName}
+                      {member.memberId === currentUser?.id && (
                         <span className="text-blue-600 text-sm ml-1">(You)</span>
                       )}
                     </h4>
                     <Badge 
                       variant="outline" 
-                      className={`text-xs ${getRoleBadgeColor(user.role)}`}
+                      className={`text-xs ${getRoleBadgeColor(member.role)}`}
                     >
-                      {user.role}
+                      {member.role}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                    {user.jobTitle && (
-                      <span className="truncate">{user.jobTitle}</span>
+                    {member.profile.title && (
+                      <span className="truncate">{member.profile.title}</span>
                     )}
-                    {user.department && (
+                    {member.profile.department && (
                       <span className="flex items-center gap-1">
                         <Building2 className="h-3 w-3" />
-                        {user.department}
+                        {member.profile.department}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
                     <span className="flex items-center gap-1">
                       <Mail className="h-3 w-3" />
-                      {user.email}
+                      {member.email}
                     </span>
-                    {user.phoneNumber && (
+                    {member.phone && (
                       <span className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {user.phoneNumber}
+                        {member.phone}
                       </span>
                     )}
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      Joined {new Date(user.createdAt).toLocaleDateString()}
+                      Joined {new Date(member.joinedAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -290,14 +290,14 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
                 {/* Status Indicator */}
                 <div className="flex flex-col items-end gap-1">
                   <div className={`flex items-center gap-1 text-xs ${
-                    user.isOnline ? 'text-green-600' : 'text-gray-500'
+                    member.status === 'active' ? 'text-green-600' : 'text-gray-500'
                   }`}>
                     <Activity className="h-3 w-3" />
-                    {user.isOnline ? 'Online' : 'Offline'}
+                    {member.status === 'active' ? 'Active' : member.status}
                   </div>
-                  {user.emailVerified && (
+                  {member.status === 'active' && (
                     <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                      Verified
+                      Active
                     </Badge>
                   )}
                 </div>
@@ -307,32 +307,32 @@ export default function MembersDirectory({ className }: MembersDirectoryProps) {
         </div>
 
         {/* Summary Stats */}
-        {allUsers && allUsers.length > 0 && (
+        {orgMembers && orgMembers.length > 0 && (
           <div className="pt-4 border-t">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {allUsers.filter(u => u.role === 'Admin').length}
+                  {orgMembers.filter(m => m.role === 'admin').length}
                 </div>
                 <div className="text-xs text-gray-600">Admins</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-600">
-                  {allUsers.filter(u => u.role === 'Member').length}
+                  {orgMembers.filter(m => m.role === 'member').length}
                 </div>
                 <div className="text-xs text-gray-600">Members</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-purple-600">
-                  {allUsers.filter(u => u.role === 'Approver').length}
+                  {departments.length}
                 </div>
-                <div className="text-xs text-gray-600">Approvers</div>
+                <div className="text-xs text-gray-600">Departments</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-orange-600">
-                  {allUsers.filter(u => u.isOnline).length}
+                  {orgMembers.filter(m => m.status === 'active').length}
                 </div>
-                <div className="text-xs text-gray-600">Online</div>
+                <div className="text-xs text-gray-600">Active</div>
               </div>
             </div>
           </div>

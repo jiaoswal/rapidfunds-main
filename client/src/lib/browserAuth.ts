@@ -1,6 +1,6 @@
 import { browserStorage as storage } from './browserStorage';
 import { emailService } from './emailService';
-import type { User, Organization, InviteToken } from './database';
+import type { User, Organization, InviteToken, OrgMember, OrgRequest } from './database';
 import { nanoid } from 'nanoid';
 
 // Simple password hashing using Web Crypto API
@@ -30,7 +30,7 @@ class AuthManager {
         const user = await storage.getUser(savedUserId);
         if (user) {
           this.currentUser = user;
-          this.currentOrg = await storage.getOrganization(user.orgId);
+          this.currentOrg = await storage.getOrganizationById(user.orgId);
           this.notifyListeners();
         }
       }
@@ -104,14 +104,14 @@ class AuthManager {
 
         // Use the first available organization (in a real app, you might want to let users choose)
         const defaultOrg = organizations[0];
-        console.log('🏢 Using default organization:', { id: defaultOrg.id, name: defaultOrg.name });
+        console.log('🏢 Using default organization:', { id: defaultOrg.orgId, name: defaultOrg.name });
 
         // Auto-create user with the provided credentials
         const hashedPassword = await hashPassword(password);
         const fullName = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         
         user = await storage.createUser({
-          orgId: defaultOrg.id,
+          orgId: defaultOrg.orgId,
           email: email.toLowerCase().trim(),
           password: hashedPassword,
           fullName: fullName,
@@ -170,22 +170,26 @@ class AuthManager {
         throw new Error('Email already in use');
       }
 
-      // Create organization
+      // Create organization with new schema
+      const orgId = crypto.randomUUID();
       const org = await storage.createOrganization({
-        orgCode,
         name,
-        primaryColor: '#0EA5E9',
-        secondaryColor: '#10B981',
-        customFields: [],
-        checklistTemplates: [],
-        approvalRules: [],
-        defaultDigestTime: '09:00'
+        inviteCode: orgCode,
+        createdBy: 'temp', // Will be updated after user creation
+        settings: {
+          primaryColor: '#0EA5E9',
+          secondaryColor: '#10B981',
+          customFields: [],
+          checklistTemplates: [],
+          approvalRules: [],
+          defaultDigestTime: '09:00'
+        }
       });
 
       // Create admin user
       const hashedPassword = await hashPassword(adminPassword);
       const adminUser = await storage.createUser({
-        orgId: org.id,
+        orgId: org.orgId,
         email: adminEmail.toLowerCase().trim(),
         password: hashedPassword,
         fullName: adminFullName,
@@ -195,11 +199,25 @@ class AuthManager {
         notificationPreferences: { push: true, email: true },
         isOnline: false,
         customFieldsData: {},
-          emailVerified: true
+        emailVerified: true
       });
 
-      // Email verification disabled
-      // await this.sendVerificationEmail(adminUser);
+      // Update org with creator ID
+      await storage.updateOrganization(org.orgId, { createdBy: adminUser.id });
+
+      // Create org member record for admin
+      await storage.createOrgMember({
+        orgId: org.orgId,
+        email: adminEmail.toLowerCase().trim(),
+        fullName: adminFullName,
+        role: 'admin',
+        joinedAt: new Date(),
+        status: 'active',
+        profile: {
+          title: 'Admin',
+          department: 'Management'
+        }
+      });
 
       // Auto-login the admin user
       this.currentUser = adminUser;
@@ -237,7 +255,7 @@ class AuthManager {
       // Create user
       const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
-        orgId: org.id,
+        orgId: org.orgId,
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         fullName,
@@ -248,7 +266,22 @@ class AuthManager {
         notificationPreferences: { push: true, email: true },
         isOnline: false,
         customFieldsData: {},
-          emailVerified: true
+        emailVerified: true
+      });
+
+      // Create org member record
+      await storage.createOrgMember({
+        orgId: org.orgId,
+        email: email.toLowerCase().trim(),
+        fullName,
+        phone: phoneNumber,
+        role: 'member',
+        joinedAt: new Date(),
+        status: 'active',
+        profile: {
+          title: inviteData.role,
+          department: 'General'
+        }
       });
 
       // Mark invite token as used
@@ -256,8 +289,6 @@ class AuthManager {
       if (token) {
         await storage.markInviteTokenAsUsed(token.id, user.id);
       }
-
-          // Email verification disabled
 
       // Auto-login the user
       this.currentUser = user;
@@ -289,7 +320,7 @@ class AuthManager {
       // Create user
       const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
-        orgId: org.id,
+        orgId: org.orgId,
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         fullName,
@@ -413,7 +444,7 @@ class AuthManager {
       throw new Error('No organization loaded');
     }
 
-    const updatedOrg = await storage.updateOrganization(this.currentOrg.id, data);
+    const updatedOrg = await storage.updateOrganization(this.currentOrg.orgId, data);
     this.currentOrg = updatedOrg;
     return updatedOrg;
   }

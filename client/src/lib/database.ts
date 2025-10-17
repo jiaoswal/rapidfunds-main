@@ -19,18 +19,21 @@ export interface User {
 }
 
 export interface Organization {
-  id: string;
-  orgCode: string;
+  orgId: string;              // stable unique id
   name: string;
-  domain?: string;
-  logoUrl?: string;
-  primaryColor: string;
-  secondaryColor: string;
-  customFields: any[];
-  checklistTemplates: any[];
-  approvalRules: any[];
-  defaultDigestTime: string;
+  inviteCode: string;         // single-use or multi-use per org
+  createdBy: string;          // userId of creator
   createdAt: Date;
+  settings: {
+    primaryColor: string;
+    secondaryColor: string;
+    defaultDigestTime: string;
+    customFields: any[];
+    checklistTemplates: any[];
+    approvalRules: any[];
+    domain?: string;
+    logoUrl?: string;
+  };
 }
 
 export interface FundingRequest {
@@ -122,6 +125,57 @@ export interface ApprovalHistory {
   comments?: string;
   isFastTrack: boolean;
   createdAt: Date;
+}
+
+// Org-scoped member document
+export interface OrgMember {
+  memberId: string;           // user id (stable)
+  orgId: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  role: 'admin' | 'member';
+  joinedAt: Date;
+  status: 'active' | 'pending' | 'removed';
+  profile: {
+    avatar?: string;
+    title?: string;
+    department?: string;
+    jobTitle?: string;
+    [key: string]: any;
+  };
+}
+
+// Org-scoped request document
+export interface OrgRequest {
+  requestId: string;
+  orgId: string;
+  type: 'approval' | 'join' | 'change' | 'other';
+  submittedBy: string;        // memberId
+  submittedAt: Date;
+  payload: any;               // arbitrary request data
+  status: 'pending' | 'approved' | 'rejected';
+  handledBy?: string;         // memberId
+  handledAt?: Date;
+}
+
+// Org-scoped org chart document
+export interface OrgChart {
+  orgId: string;
+  nodes: OrgChartNode[];
+  updatedAt: Date;
+}
+
+// Audit log for org operations
+export interface OrgAuditLog {
+  id: string;
+  orgId: string;
+  action: string;             // 'create', 'update', 'delete', 'join', 'leave', etc.
+  performedBy: string;        // memberId
+  performedAt: Date;
+  targetType: string;         // 'member', 'request', 'orgChart', etc.
+  targetId?: string;
+  details: any;               // action-specific data
 }
 
 // Helper function to generate UUID

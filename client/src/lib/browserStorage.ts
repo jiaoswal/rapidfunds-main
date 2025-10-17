@@ -19,6 +19,20 @@ export class BrowserStorage extends Dexie {
 
   constructor() {
     super('RapidFundsDB');
+    
+    // Version 1: Original schema
+    this.version(1).stores({
+      users: '++id, orgId, email, fullName, role, department, createdAt',
+      organizations: '++orgId, name, inviteCode, createdBy, createdAt',
+      fundingRequests: '++id, orgId, requesterId, approverId, title, status, amount, category, createdAt',
+      queryMessages: '++id, requestId, userId, messageType, content, createdAt',
+      orgChartNodes: '++id, orgId, userId, name, role, department, parentId, level, createdAt',
+      inviteTokens: '++id, orgId, token, role, createdBy, expiresAt, usedAt',
+      approvalChains: '++id, orgId, name, department, category, isDefault, createdAt',
+      approvalHistory: '++id, requestId, level, approverId, action, comments, createdAt'
+    });
+
+    // Version 2: Add org-scoped tables
     this.version(2).stores({
       users: '++id, orgId, email, fullName, role, department, createdAt',
       organizations: '++orgId, name, inviteCode, createdBy, createdAt',
@@ -33,12 +47,82 @@ export class BrowserStorage extends Dexie {
       orgRequests: '++requestId, orgId, type, submittedBy, status, submittedAt',
       orgCharts: '++orgId, updatedAt',
       orgAuditLogs: '++id, orgId, action, performedBy, performedAt, targetType, targetId'
+    }).upgrade(async (trans) => {
+      // Migration logic: Create org members from existing users
+      console.log('🔄 Migrating existing users to org members...');
+      
+      const users = await (trans as any).users.toArray();
+      const organizations = await (trans as any).organizations.toArray();
+      
+      for (const user of users) {
+        const org = organizations.find((o: any) => o.orgId === user.orgId);
+        if (org) {
+          // Create org member record
+          await (trans as any).orgMembers.add({
+            memberId: user.id,
+            orgId: user.orgId,
+            email: user.email,
+            fullName: user.fullName,
+            phone: user.phoneNumber,
+            role: user.role === 'Admin' ? 'admin' : 'member',
+            joinedAt: user.createdAt,
+            status: 'active',
+            profile: {
+              title: user.jobTitle || user.role,
+              department: user.department || 'General'
+            }
+          });
+        }
+      }
+      
+      console.log(`✅ Migrated ${users.length} users to org members`);
     });
   }
 }
 
-// Create database instance
+// Create database instance with error handling
 export const db = new BrowserStorage();
+
+// Handle database initialization errors
+db.on('close', async () => {
+  console.log('📦 Database closed');
+});
+
+// Add error handling wrapper for database operations
+const handleDatabaseError = async (error: any) => {
+  console.error('❌ Database error:', error);
+  if (error.name === 'DatabaseClosedError' || error.message.includes('UpgradeError')) {
+    console.log('🔄 Attempting to reset database due to migration error...');
+    try {
+      await db.close();
+      await db.delete();
+      console.log('✅ Database reset complete - please refresh the page');
+      // Show user notification
+      if (typeof window !== 'undefined') {
+        alert('Database migration error detected. The app will reset your local data and refresh. Please refresh the page to continue.');
+        window.location.reload();
+      }
+    } catch (resetError) {
+      console.error('❌ Failed to reset database:', resetError);
+    }
+  }
+};
+
+// Global function for manual database reset (for debugging)
+if (typeof window !== 'undefined') {
+  (window as any).resetRapidFundsDatabase = async () => {
+    try {
+      await db.close();
+      await db.delete();
+      console.log('✅ Database manually reset - please refresh the page');
+      alert('Database reset complete. Please refresh the page to continue.');
+      window.location.reload();
+    } catch (error) {
+      console.error('❌ Failed to reset database:', error);
+      alert('Failed to reset database. Please check console for details.');
+    }
+  };
+}
 
 // Storage implementation using IndexedDB
 export class BrowserStorageImpl {
@@ -58,10 +142,16 @@ export class BrowserStorageImpl {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    console.log('🔍 Searching for user by email:', email);
-    const user = await db.users.where('email').equals(email).first() || null;
-    console.log('👤 Database result:', user ? { id: user.id, email: user.email, role: user.role } : 'null');
-    return user;
+    try {
+      console.log('🔍 Searching for user by email:', email);
+      const user = await db.users.where('email').equals(email).first() || null;
+      console.log('👤 Database result:', user ? { id: user.id, email: user.email, role: user.role } : 'null');
+      return user;
+    } catch (error: any) {
+      console.error('❌ Error getting user by email:', error);
+      await handleDatabaseError(error);
+      throw error;
+    }
   }
 
   async getUsersByOrgId(orgId: string): Promise<User[]> {
@@ -520,6 +610,18 @@ export class BrowserStorageImpl {
       await db.orgCharts.clear();
       await db.orgAuditLogs.clear();
     });
+  }
+
+  async resetDatabase(): Promise<void> {
+    console.log('🔄 Resetting database...');
+    try {
+      await db.close();
+      await db.delete();
+      console.log('✅ Database reset complete');
+    } catch (error) {
+      console.error('❌ Error resetting database:', error);
+      throw error;
+    }
   }
 
   async seedDatabase(): Promise<void> {

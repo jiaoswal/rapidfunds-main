@@ -7,7 +7,7 @@ import { authManager } from '@/lib/browserAuth';
 import { browserStorage } from '@/lib/browserStorage';
 
 export function DebugAuth() {
-  const [email, setEmail] = useState('admin@demo.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('demo123');
   const [result, setResult] = useState<string>('');
   const [allUsers, setAllUsers] = useState<any[]>([]);
@@ -72,7 +72,7 @@ export function DebugAuth() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@demo.com"
+                placeholder="Enter email"
               />
             </div>
             <div className="space-y-2">

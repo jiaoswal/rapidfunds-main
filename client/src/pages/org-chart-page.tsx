@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import HierarchyVisualization from "@/components/hierarchy-visualization";
 import AdminOrgChartManager from "@/components/admin-org-chart-manager";
 import { useQuery } from "@tanstack/react-query";
-import { User, OrgChartNode } from "@/lib/database";
+import { User, OrgChartNode, OrgMember, OrgChart } from "@/lib/database";
 import { useEffect, useState } from "react";
 import { 
   Users, 
@@ -23,14 +23,14 @@ export default function OrgChartPage() {
   
   const isAdmin = user?.role === 'Admin';
 
-  // Fetch all users in the organization
-  const { data: allUsers, isLoading: usersLoading, refetch: refetchUsers } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+  // Fetch org members using new org-scoped API
+  const { data: orgMembers, isLoading: membersLoading, refetch: refetchMembers } = useQuery<OrgMember[]>({
+    queryKey: ["/api/org-members"],
     enabled: !!user?.orgId,
   });
 
-  // Fetch org chart nodes
-  const { data: orgChartNodes, isLoading: nodesLoading, refetch: refetchNodes } = useQuery<OrgChartNode[]>({
+  // Fetch org chart using new org-scoped API
+  const { data: orgChart, isLoading: chartLoading, refetch: refetchChart } = useQuery<OrgChart | null>({
     queryKey: ["/api/org-chart"],
     enabled: !!user?.orgId,
   });
@@ -41,45 +41,40 @@ export default function OrgChartPage() {
       if (!user?.orgId || isInitialized) return;
       
       try {
-        // Create org chart nodes for all existing users if they don't exist
-        if (allUsers && allUsers.length > 0) {
-          const existingNodeUserIds = orgChartNodes?.map(node => node.userId) || [];
-          const usersNeedingNodes = allUsers.filter(user => 
-            user.id && !existingNodeUserIds.includes(user.id)
-          );
+        // Create org chart if it doesn't exist and we have members
+        if (orgMembers && orgMembers.length > 0 && !orgChart) {
+          const nodes: OrgChartNode[] = orgMembers.map((member, index) => ({
+            id: crypto.randomUUID(),
+            orgId: member.orgId,
+            userId: member.memberId,
+            name: member.fullName,
+            role: member.profile.title || member.role,
+            department: member.profile.department || 'General',
+            level: member.role === 'admin' ? 1 : 2, // Admins at L1, others at L2
+            parentId: member.role === 'admin' ? undefined : undefined, // Will be set by admin later
+            position: { x: index * 200, y: member.role === 'admin' ? 0 : 100 },
+            color: member.role === 'admin' ? 'purple' : 'blue',
+            shape: 'rectangle' as const,
+            isExpanded: true,
+            isApproved: true,
+            email: member.email,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }));
 
-          for (const userToAdd of usersNeedingNodes) {
-            try {
-              const nodeData = {
-                orgId: userToAdd.orgId,
-                userId: userToAdd.id,
-                name: userToAdd.fullName,
-                role: userToAdd.jobTitle || userToAdd.role,
-                department: userToAdd.department || 'General',
-                level: userToAdd.role === 'Admin' ? 1 : 2, // Admins at L1, others at L2
-                parentId: userToAdd.role === 'Admin' ? undefined : undefined, // Will be set by admin later
-                position: { x: 0, y: 0 },
-                color: userToAdd.role === 'Admin' ? 'purple' : 'blue',
-                shape: 'rectangle' as const,
-                isExpanded: true,
-                isApproved: true,
-                email: userToAdd.email,
-                createdAt: new Date(),
-                updatedAt: new Date()
-              };
+          const chartData = {
+            nodes,
+            updatedAt: new Date()
+          };
 
-              const response = await fetch('/api/org-chart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(nodeData)
-              });
+          const response = await fetch('/api/org-chart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(chartData)
+          });
 
-              if (response.ok) {
-                console.log(`✅ Created org chart node for user: ${userToAdd.fullName}`);
-              }
-            } catch (error) {
-              console.error(`❌ Failed to create node for user ${userToAdd.fullName}:`, error);
-            }
+          if (response.ok) {
+            console.log(`✅ Created org chart with ${nodes.length} nodes`);
           }
         }
         
@@ -90,16 +85,16 @@ export default function OrgChartPage() {
       }
     };
 
-    if (allUsers && !isInitialized) {
+    if (orgMembers && !isInitialized) {
       initializeOrgChart();
     }
-  }, [allUsers, orgChartNodes, user?.orgId, isInitialized]);
+  }, [orgMembers, orgChart, user?.orgId, isInitialized]);
 
   const handleRefresh = async () => {
     try {
       setIsInitialized(false);
-      await refetchUsers();
-      await refetchNodes();
+      await refetchMembers();
+      await refetchChart();
       toast({
         title: "Success",
         description: "Organization chart refreshed",
@@ -115,10 +110,10 @@ export default function OrgChartPage() {
   };
 
   // Calculate statistics
-  const totalUsers = allUsers?.length || 0;
-  const totalNodes = orgChartNodes?.length || 0;
-  const admins = allUsers?.filter(u => u.role === 'Admin').length || 0;
-  const members = allUsers?.filter(u => u.role !== 'Admin').length || 0;
+  const totalMembers = orgMembers?.length || 0;
+  const totalNodes = orgChart?.nodes?.length || 0;
+  const admins = orgMembers?.filter(m => m.role === 'admin').length || 0;
+  const members = orgMembers?.filter(m => m.role !== 'admin').length || 0;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -132,15 +127,15 @@ export default function OrgChartPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            className="flex items-center gap-2"
-            disabled={usersLoading || nodesLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${(usersLoading || nodesLoading) ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+                 <Button
+                   variant="outline"
+                   onClick={handleRefresh}
+                   className="flex items-center gap-2"
+                   disabled={membersLoading || chartLoading}
+                 >
+                   <RefreshCw className={`h-4 w-4 ${(membersLoading || chartLoading) ? 'animate-spin' : ''}`} />
+                   Refresh
+                 </Button>
           
           {isAdmin && (
             <Button
@@ -160,10 +155,10 @@ export default function OrgChartPage() {
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">
               <Users className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{totalUsers}</p>
-              </div>
+                     <div>
+                       <p className="text-sm font-medium text-gray-600">Total Members</p>
+                       <p className="text-2xl font-bold text-gray-900">{totalMembers}</p>
+                     </div>
             </div>
           </CardContent>
         </Card>
@@ -205,42 +200,42 @@ export default function OrgChartPage() {
         </Card>
       </div>
 
-      {/* Status Message */}
-      {totalUsers > 0 && totalNodes === 0 && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-sm font-medium text-yellow-800">
-                  Initializing Organization Chart
-                </p>
-                <p className="text-sm text-yellow-700">
-                  Creating org chart nodes for {totalUsers} users. This may take a moment...
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+             {/* Status Message */}
+             {totalMembers > 0 && totalNodes === 0 && (
+               <Card className="border-yellow-200 bg-yellow-50">
+                 <CardContent className="p-4">
+                   <div className="flex items-center space-x-3">
+                     <AlertCircle className="h-5 w-5 text-yellow-600" />
+                     <div>
+                       <p className="text-sm font-medium text-yellow-800">
+                         Initializing Organization Chart
+                       </p>
+                       <p className="text-sm text-yellow-700">
+                         Creating org chart nodes for {totalMembers} members. This may take a moment...
+                       </p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             )}
 
-      {totalUsers > 0 && totalNodes > 0 && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-green-800">
-                  Organization Chart Ready
-                </p>
-                <p className="text-sm text-green-700">
-                  All {totalUsers} users have been added to the organization chart.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+             {totalMembers > 0 && totalNodes > 0 && (
+               <Card className="border-green-200 bg-green-50">
+                 <CardContent className="p-4">
+                   <div className="flex items-center space-x-3">
+                     <CheckCircle className="h-5 w-5 text-green-600" />
+                     <div>
+                       <p className="text-sm font-medium text-green-800">
+                         Organization Chart Ready
+                       </p>
+                       <p className="text-sm text-green-700">
+                         All {totalMembers} members have been added to the organization chart.
+                       </p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             )}
 
       {/* Admin Info Card */}
       {isAdmin && (

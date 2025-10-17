@@ -52,7 +52,7 @@ export class BrowserApi {
     return await authManager.updateOrganization(data);
   }
 
-  // User endpoints
+  // User endpoints (legacy - use org-scoped endpoints instead)
   async getUsers(): Promise<User[]> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
     const user = authManager.getCurrentUser()!;
@@ -68,6 +68,112 @@ export class BrowserApi {
       ...data,
       orgId: currentUser.orgId
     });
+  }
+
+  // ===== ORG-SCOPED ENDPOINTS =====
+
+  // Org Members endpoints
+  async getOrgMembers(): Promise<OrgMember[]> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    const user = authManager.getCurrentUser()!;
+    return await storage.getOrgMembers(user.orgId);
+  }
+
+  async createOrgMember(data: Omit<OrgMember, 'memberId' | 'orgId'>): Promise<OrgMember> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.createOrgMember({
+      ...data,
+      orgId: currentUser.orgId
+    });
+  }
+
+  async updateOrgMember(memberId: string, updates: Partial<OrgMember>): Promise<OrgMember> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.updateOrgMember(currentUser.orgId, memberId, updates);
+  }
+
+  async deleteOrgMember(memberId: string): Promise<void> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    await storage.deleteOrgMember(currentUser.orgId, memberId);
+  }
+
+  async upsertOrgMember(data: Omit<OrgMember, 'memberId' | 'orgId'>): Promise<OrgMember> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.upsertOrgMember({
+      ...data,
+      orgId: currentUser.orgId
+    });
+  }
+
+  // Org Requests endpoints
+  async getOrgRequests(status?: string): Promise<OrgRequest[]> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    const user = authManager.getCurrentUser()!;
+    return await storage.getOrgRequests(user.orgId, status);
+  }
+
+  async createOrgRequest(data: Omit<OrgRequest, 'requestId' | 'orgId'>): Promise<OrgRequest> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.createOrgRequest({
+      ...data,
+      orgId: currentUser.orgId
+    });
+  }
+
+  async updateOrgRequest(requestId: string, updates: Partial<OrgRequest>): Promise<OrgRequest> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.updateOrgRequest(currentUser.orgId, requestId, updates);
+  }
+
+  async deleteOrgRequest(requestId: string): Promise<void> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    await storage.deleteOrgRequest(currentUser.orgId, requestId);
+  }
+
+  // Org Chart endpoints
+  async getOrgChart(): Promise<OrgChart | null> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    const user = authManager.getCurrentUser()!;
+    return await storage.getOrgChart(user.orgId);
+  }
+
+  async saveOrgChart(orgChart: Omit<OrgChart, 'orgId'>): Promise<OrgChart> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.saveOrgChart({
+      ...orgChart,
+      orgId: currentUser.orgId
+    });
+  }
+
+  // Audit endpoints
+  async getOrgAuditLogs(): Promise<any[]> {
+    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
+    if (!isAdmin()) throw new Error('Admin access required');
+    
+    const currentUser = authManager.getCurrentUser()!;
+    return await storage.getOrgAuditLogs(currentUser.orgId);
   }
 
   // Pending approvals endpoint
@@ -92,12 +198,6 @@ export class BrowserApi {
     return pendingCounts;
   }
 
-  // Org Chart endpoints
-  async getOrgChart(): Promise<OrgChartNode[]> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    const user = authManager.getCurrentUser()!;
-    return await storage.getOrgChartNodesByOrgId(user.orgId);
-  }
 
   async createOrgChartNode(data: any): Promise<OrgChartNode> {
     if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
@@ -448,95 +548,6 @@ export class BrowserApi {
     });
   }
 
-  // ===== NEW ORG-SCOPED API ENDPOINTS =====
-
-  // Org Members endpoints
-  async getOrgMembers(): Promise<OrgMember[]> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    const user = authManager.getCurrentUser()!;
-    return await storage.getOrgMembers(user.orgId);
-  }
-
-  async createOrgMember(data: any): Promise<OrgMember> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const currentUser = authManager.getCurrentUser()!;
-    return await storage.createOrgMember({
-      ...data,
-      orgId: currentUser.orgId
-    });
-  }
-
-  async updateOrgMember(memberId: string, data: any): Promise<OrgMember> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const currentUser = authManager.getCurrentUser()!;
-    return await storage.updateOrgMember(currentUser.orgId, memberId, data);
-  }
-
-  async deleteOrgMember(memberId: string): Promise<void> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const currentUser = authManager.getCurrentUser()!;
-    await storage.deleteOrgMember(currentUser.orgId, memberId);
-  }
-
-  // Org Requests endpoints
-  async getOrgRequests(status?: string): Promise<OrgRequest[]> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    const user = authManager.getCurrentUser()!;
-    return await storage.getOrgRequests(user.orgId, status);
-  }
-
-  async createOrgRequest(data: any): Promise<OrgRequest> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    
-    const currentUser = authManager.getCurrentUser()!;
-    return await storage.createOrgRequest({
-      ...data,
-      orgId: currentUser.orgId,
-      submittedBy: currentUser.id
-    });
-  }
-
-  async updateOrgRequest(requestId: string, data: any): Promise<OrgRequest> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const currentUser = authManager.getCurrentUser()!;
-    return await storage.updateOrgRequest(currentUser.orgId, requestId, data);
-  }
-
-  // Org Chart endpoints
-  async getOrgChartData(): Promise<OrgChart | null> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    const user = authManager.getCurrentUser()!;
-    return await storage.getOrgChart(user.orgId);
-  }
-
-  async saveOrgChartData(data: any): Promise<OrgChart> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const currentUser = authManager.getCurrentUser()!;
-    return await storage.saveOrgChart({
-      orgId: currentUser.orgId,
-      nodes: data.nodes,
-      updatedAt: new Date()
-    });
-  }
-
-  // Audit Log endpoints
-  async getAuditLogs(limit: number = 100): Promise<any[]> {
-    if (!authManager.isAuthenticated()) throw new Error('Not authenticated');
-    if (!isAdmin()) throw new Error('Admin access required');
-    
-    const user = authManager.getCurrentUser()!;
-    return await storage.getAuditLogs(user.orgId, limit);
-  }
 
   // Profile endpoints
   async updateProfile(data: any): Promise<User> {

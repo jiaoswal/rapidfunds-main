@@ -363,16 +363,16 @@ export class BrowserStorageImpl {
     return await db.approvalHistory.where('requestId').equals(requestId).toArray();
   }
 
-  // ===== NEW ORG-SCOPED OPERATIONS =====
+  // ===== ORG-SCOPED OPERATIONS =====
 
-  // Org Member operations
+  // Org Members operations
   async createOrgMember(member: Omit<OrgMember, 'memberId'>): Promise<OrgMember> {
     const newMember: OrgMember = {
       ...member,
-      memberId: crypto.randomUUID()
+      memberId: crypto.randomUUID(),
     };
     await db.orgMembers.add(newMember);
-    await this.logAudit(member.orgId, 'create', 'system', 'member', newMember.memberId, { action: 'member_created', member });
+    await this.logAuditAction(member.orgId, 'create', 'member', newMember.memberId, { member: newMember });
     return newMember;
   }
 
@@ -381,30 +381,47 @@ export class BrowserStorageImpl {
   }
 
   async getOrgMember(orgId: string, memberId: string): Promise<OrgMember | null> {
-    return await db.orgMembers.where(['orgId', 'memberId']).equals([orgId, memberId]).first() || null;
+    return await db.orgMembers.where('[orgId+memberId]').equals([orgId, memberId]).first() || null;
   }
 
   async updateOrgMember(orgId: string, memberId: string, updates: Partial<OrgMember>): Promise<OrgMember> {
-    const updated = await db.orgMembers.where(['orgId', 'memberId']).equals([orgId, memberId]).modify(updates);
-    const member = await this.getOrgMember(orgId, memberId);
-    if (!member) throw new Error('Member not found');
-    await this.logAudit(orgId, 'update', 'system', 'member', memberId, { action: 'member_updated', updates });
-    return member;
+    await db.orgMembers.where('[orgId+memberId]').equals([orgId, memberId]).modify(updates);
+    const updated = await db.orgMembers.where('[orgId+memberId]').equals([orgId, memberId]).first();
+    if (!updated) throw new Error('Org member not found');
+    await this.logAuditAction(orgId, 'update', 'member', memberId, { updates });
+    return updated;
   }
 
   async deleteOrgMember(orgId: string, memberId: string): Promise<void> {
-    await db.orgMembers.where(['orgId', 'memberId']).equals([orgId, memberId]).delete();
-    await this.logAudit(orgId, 'delete', 'system', 'member', memberId, { action: 'member_deleted' });
+    await db.orgMembers.where('[orgId+memberId]').equals([orgId, memberId]).delete();
+    await this.logAuditAction(orgId, 'delete', 'member', memberId, {});
   }
 
-  // Org Request operations
+  async upsertOrgMember(member: Omit<OrgMember, 'memberId'>): Promise<OrgMember> {
+    // Check if member already exists
+    const existing = await db.orgMembers.where('[orgId+email]').equals([member.orgId, member.email]).first();
+    
+    if (existing) {
+      // Update existing member
+      await db.orgMembers.where('[orgId+email]').equals([member.orgId, member.email]).modify(member);
+      const updated = await db.orgMembers.where('[orgId+email]').equals([member.orgId, member.email]).first();
+      if (!updated) throw new Error('Failed to update org member');
+      await this.logAuditAction(member.orgId, 'update', 'member', updated.memberId, { member: updated });
+      return updated;
+    } else {
+      // Create new member
+      return await this.createOrgMember(member);
+    }
+  }
+
+  // Org Requests operations
   async createOrgRequest(request: Omit<OrgRequest, 'requestId'>): Promise<OrgRequest> {
     const newRequest: OrgRequest = {
       ...request,
-      requestId: crypto.randomUUID()
+      requestId: crypto.randomUUID(),
     };
     await db.orgRequests.add(newRequest);
-    await this.logAudit(request.orgId, 'create', request.submittedBy, 'request', newRequest.requestId, { action: 'request_created', request });
+    await this.logAuditAction(request.orgId, 'create', 'request', newRequest.requestId, { request: newRequest });
     return newRequest;
   }
 
@@ -417,36 +434,50 @@ export class BrowserStorageImpl {
   }
 
   async getOrgRequest(orgId: string, requestId: string): Promise<OrgRequest | null> {
-    return await db.orgRequests.where(['orgId', 'requestId']).equals([orgId, requestId]).first() || null;
+    return await db.orgRequests.where('[orgId+requestId]').equals([orgId, requestId]).first() || null;
   }
 
   async updateOrgRequest(orgId: string, requestId: string, updates: Partial<OrgRequest>): Promise<OrgRequest> {
-    await db.orgRequests.where(['orgId', 'requestId']).equals([orgId, requestId]).modify(updates);
-    const request = await this.getOrgRequest(orgId, requestId);
-    if (!request) throw new Error('Request not found');
-    await this.logAudit(orgId, 'update', updates.handledBy || 'system', 'request', requestId, { action: 'request_updated', updates });
-    return request;
+    await db.orgRequests.where('[orgId+requestId]').equals([orgId, requestId]).modify(updates);
+    const updated = await db.orgRequests.where('[orgId+requestId]').equals([orgId, requestId]).first();
+    if (!updated) throw new Error('Org request not found');
+    await this.logAuditAction(orgId, 'update', 'request', requestId, { updates });
+    return updated;
+  }
+
+  async deleteOrgRequest(orgId: string, requestId: string): Promise<void> {
+    await db.orgRequests.where('[orgId+requestId]').equals([orgId, requestId]).delete();
+    await this.logAuditAction(orgId, 'delete', 'request', requestId, {});
   }
 
   // Org Chart operations
   async getOrgChart(orgId: string): Promise<OrgChart | null> {
-    return await db.orgCharts.get(orgId) || null;
+    return await db.orgCharts.where('orgId').equals(orgId).first() || null;
   }
 
   async saveOrgChart(orgChart: OrgChart): Promise<OrgChart> {
-    const updatedChart = { ...orgChart, updatedAt: new Date() };
-    await db.orgCharts.put(updatedChart);
-    await this.logAudit(orgChart.orgId, 'update', 'system', 'orgChart', orgChart.orgId, { action: 'org_chart_updated', chart: updatedChart });
-    return updatedChart;
+    const existing = await db.orgCharts.where('orgId').equals(orgChart.orgId).first();
+    
+    if (existing) {
+      await db.orgCharts.where('orgId').equals(orgChart.orgId).modify({
+        nodes: orgChart.nodes,
+        updatedAt: new Date()
+      });
+    } else {
+      await db.orgCharts.add(orgChart);
+    }
+    
+    await this.logAuditAction(orgChart.orgId, 'update', 'orgChart', orgChart.orgId, { nodes: orgChart.nodes });
+    return orgChart;
   }
 
   // Audit logging
-  async logAudit(orgId: string, action: string, performedBy: string, targetType: string, targetId?: string, details?: any): Promise<void> {
+  async logAuditAction(orgId: string, action: string, targetType: string, targetId: string, details: any): Promise<void> {
     const auditLog: OrgAuditLog = {
       id: crypto.randomUUID(),
       orgId,
       action,
-      performedBy,
+      performedBy: 'system', // TODO: Get from auth context
       performedAt: new Date(),
       targetType,
       targetId,
@@ -455,14 +486,10 @@ export class BrowserStorageImpl {
     await db.orgAuditLogs.add(auditLog);
   }
 
-  async getAuditLogs(orgId: string, limit: number = 100): Promise<OrgAuditLog[]> {
-    return await db.orgAuditLogs
-      .where('orgId')
-      .equals(orgId)
-      .reverse()
-      .limit(limit)
-      .toArray();
+  async getOrgAuditLogs(orgId: string): Promise<OrgAuditLog[]> {
+    return await db.orgAuditLogs.where('orgId').equals(orgId).reverse().sortBy('performedAt');
   }
+
 
   // Utility functions
   async clearDatabase(): Promise<void> {
@@ -510,139 +537,6 @@ export class BrowserStorageImpl {
     // Don't create demo data automatically - let users create their own organizations
     console.log('📊 No demo data created - users will create their own organizations');
     return;
-    
-    // Import hashPassword function
-    const { hashPassword } = await import('./browserAuth');
-    
-    // Create demo organization
-    const demoOrg = await this.createOrganization({
-      name: 'Demo Organization',
-      inviteCode: 'DEMO',
-      createdBy: 'temp',
-      settings: {
-        primaryColor: '#0EA5E9',
-        secondaryColor: '#10B981',
-        customFields: [],
-        checklistTemplates: [],
-        approvalRules: [],
-        defaultDigestTime: '09:00'
-      }
-    });
-    console.log('🏢 Demo organization created:', { id: demoOrg.orgId, code: demoOrg.inviteCode });
-
-    // Create demo admin user
-    const hashedPassword = await hashPassword('demo123');
-    console.log('🔒 Demo password hashed:', hashedPassword.substring(0, 10) + '...');
-    
-    const demoAdmin = await this.createUser({
-      orgId: demoOrg.orgId,
-      email: 'admin@demo.com',
-      password: hashedPassword,
-      fullName: 'Demo Admin',
-      role: 'Admin',
-      department: 'Administration',
-      digestTime: '09:00',
-      notificationPreferences: { push: true, email: true },
-      isOnline: false,
-      customFieldsData: {},
-      emailVerified: true
-    });
-    console.log('👤 Demo admin user created:', { id: demoAdmin.id, email: demoAdmin.email });
-
-    // Create additional demo users
-    const kavyaPassword = await hashPassword('jiaoswal');
-    const kavyaUser = await this.createUser({
-      orgId: demoOrg.orgId,
-      email: 'kavya@star.com',
-      password: kavyaPassword,
-      fullName: 'Kavya Star',
-      role: 'Member',
-      department: 'Engineering',
-      digestTime: '09:00',
-      notificationPreferences: { push: true, email: true },
-      isOnline: false,
-      customFieldsData: {},
-      emailVerified: true
-    });
-    console.log('👤 Kavya user created:', { id: kavyaUser.id, email: kavyaUser.email });
-
-    // Create demo org chart nodes
-    const orgChartNodes = [
-      {
-        orgId: demoOrg.orgId,
-        name: 'Allan Munger',
-        role: 'Process Optimization Lead',
-        department: 'Executive',
-        level: 1,
-        budgetResponsibility: '$2.5M',
-        email: 'allanmunger@rapidfunds.com',
-        position: { x: 0, y: 0 },
-        color: '#0EA5E9',
-        shape: 'rectangle' as const,
-        isExpanded: true,
-        isApproved: true
-      },
-      {
-        orgId: demoOrg.orgId,
-        name: 'Kayo',
-        role: 'Chief People Officer',
-        department: 'Human Resources & Admin',
-        level: 2,
-        budgetResponsibility: '$1.2M',
-        email: 'kayo@rapidfunds.com',
-        position: { x: -200, y: 100 },
-        color: '#10B981',
-        shape: 'rectangle' as const,
-        isExpanded: true,
-        isApproved: true
-      },
-      {
-        orgId: demoOrg.orgId,
-        name: 'Daisy Phillips',
-        role: 'Senior Procurement Executive',
-        department: 'Operations Department',
-        level: 2,
-        budgetResponsibility: '$1.2M',
-        email: 'daisyphillips@rapidfunds.com',
-        position: { x: 200, y: 100 },
-        color: '#F59E0B',
-        shape: 'rectangle' as const,
-        isExpanded: true,
-        isApproved: true
-      },
-      {
-        orgId: demoOrg.orgId,
-        name: 'David Power',
-        role: 'Administrator',
-        department: 'Human Resources & Admin',
-        level: 3,
-        budgetResponsibility: '$500K',
-        email: 'davidpower@rapidfunds.com',
-        position: { x: -200, y: 200 },
-        color: '#10B981',
-        shape: 'rectangle' as const,
-        isExpanded: true,
-        isApproved: true
-      },
-      {
-        orgId: demoOrg.orgId,
-        name: 'Ashley McCarthy',
-        role: 'Procurement Assistant',
-        department: 'Operations Department',
-        level: 3,
-        budgetResponsibility: '$500K',
-        email: 'ashleymccarthy@rapidfunds.com',
-        position: { x: 200, y: 200 },
-        color: '#F59E0B',
-        shape: 'rectangle' as const,
-        isExpanded: true,
-        isApproved: true
-      }
-    ];
-
-    for (const node of orgChartNodes) {
-      await this.createOrgChartNode(node);
-    }
 
     console.log('✅ Database seeding completed successfully!');
   }

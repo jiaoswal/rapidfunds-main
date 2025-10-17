@@ -108,7 +108,7 @@ const handleDatabaseError = async (error: any) => {
   }
 };
 
-// Global function for manual database reset (for debugging)
+// Global functions for manual database operations (for debugging)
 if (typeof window !== 'undefined') {
   (window as any).resetRapidFundsDatabase = async () => {
     try {
@@ -120,6 +120,46 @@ if (typeof window !== 'undefined') {
     } catch (error) {
       console.error('❌ Failed to reset database:', error);
       alert('Failed to reset database. Please check console for details.');
+    }
+  };
+
+  (window as any).testRapidFundsDatabase = async () => {
+    try {
+      console.log('🧪 Testing RapidFunds database...');
+      await db.open();
+      
+      const userCount = await db.users.count();
+      const orgCount = await db.organizations.count();
+      const memberCount = await db.orgMembers.count();
+      const requestCount = await db.orgRequests.count();
+      const chartCount = await db.orgCharts.count();
+      const auditCount = await db.orgAuditLogs.count();
+      
+      console.log('📊 Database Statistics:');
+      console.log(`  Users: ${userCount}`);
+      console.log(`  Organizations: ${orgCount}`);
+      console.log(`  Org Members: ${memberCount}`);
+      console.log(`  Org Requests: ${requestCount}`);
+      console.log(`  Org Charts: ${chartCount}`);
+      console.log(`  Audit Logs: ${auditCount}`);
+      
+      console.log('✅ Database test completed successfully!');
+      return { userCount, orgCount, memberCount, requestCount, chartCount, auditCount };
+    } catch (error) {
+      console.error('❌ Database test failed:', error);
+      throw error;
+    }
+  };
+
+  (window as any).clearRapidFundsDatabase = async () => {
+    try {
+      console.log('🧹 Clearing RapidFunds database...');
+      await browserStorage.clearDatabase();
+      console.log('✅ Database cleared successfully!');
+      alert('Database cleared successfully!');
+    } catch (error) {
+      console.error('❌ Failed to clear database:', error);
+      alert('Failed to clear database. Please check console for details.');
     }
   };
 }

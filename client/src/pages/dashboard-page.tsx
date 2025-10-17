@@ -10,6 +10,7 @@ import { aiService } from "@/lib/aiService";
 import { useState } from "react";
 import { DashboardLoading, LoadingSkeleton } from "@/components/loading";
 import DailyDigest from "@/components/daily-digest";
+import MembersDirectory from "@/components/members-directory";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -82,7 +83,11 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        {/* Stats Cards */}
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Left Column - Main Dashboard Content */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -246,6 +251,13 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+          </div>
+
+          {/* Right Column - Members Directory */}
+          <div className="xl:col-span-1">
+            <MembersDirectory />
+          </div>
+        </div>
       </div>
     </div>
   );

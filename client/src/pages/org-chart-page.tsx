@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import HierarchyVisualization from "@/components/hierarchy-visualization";
 import AdminOrgChartManager from "@/components/admin-org-chart-manager";
+import SmartMemberAdder from "@/components/smart-member-adder";
+import OrgChartDebug from "@/components/org-chart-debug";
 import { useQuery } from "@tanstack/react-query";
 import { User, OrgChartNode, OrgMember, OrgChart } from "@/lib/database";
 import { useEffect, useState } from "react";
@@ -237,23 +239,39 @@ export default function OrgChartPage() {
                </Card>
              )}
 
-      {/* Admin Info Card */}
-      {isAdmin && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              Admin Controls
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-blue-800">
-              As an admin, you can add, edit, delete, and rearrange members in the organization chart. 
-              Use drag-and-drop to reorganize the hierarchy, and click the "Add Member" button to add new team members.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+             {/* Smart Member Adder for Admins */}
+             {isAdmin && (
+               <SmartMemberAdder 
+                 onMemberAdded={() => {
+                   refetchMembers();
+                   refetchChart();
+                 }}
+                 className="mb-6"
+               />
+             )}
+
+             {/* Debug Information for Admins */}
+             {isAdmin && (
+               <OrgChartDebug />
+             )}
+
+             {/* Admin Info Card */}
+             {isAdmin && (
+               <Card className="border-blue-200 bg-blue-50">
+                 <CardHeader className="pb-3">
+                   <CardTitle className="text-lg flex items-center gap-2">
+                     <Users className="h-5 w-5 text-blue-600" />
+                     Admin Controls
+                   </CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <p className="text-sm text-blue-800">
+                     As an admin, you can add, edit, delete, and rearrange members in the organization chart. 
+                     Use the Smart Member Manager above to easily add members, or use drag-and-drop to reorganize the hierarchy.
+                   </p>
+                 </CardContent>
+               </Card>
+             )}
 
       {/* Member Info Card */}
       {!isAdmin && (
